@@ -5,7 +5,7 @@
 
 ## Syfte
 
-Projektet customs_recovery_ai fungerar hela vägen (PDF → extraktion → TARIC-revision
+Projektet Tullsyn fungerar hela vägen (PDF → extraktion → TARIC-revision
 → rapport) men saknar två grundskydd:
 
 1. **Versionshantering** — utan git kan en felaktig ändring eller diskkrasch radera
