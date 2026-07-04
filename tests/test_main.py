@@ -45,3 +45,48 @@ def test_fel_filtyp_ger_tydligt_fel(tmp_path):
     txt.write_text("hej")
     with pytest.raises(ValueError, match="inte en PDF"):
         hitta_fakturor(str(txt))
+
+
+# --- Batchkörning: vilka lyckades och vilka måste köras om? ---
+
+def test_kor_batch_listar_vilka_som_misslyckades(monkeypatch):
+    """
+    Batchkörningen ska hålla reda på exakt VILKA fakturor som misslyckades
+    — annars vet användaren inte vilka som måste köras om.
+    """
+    import main as main_modul
+
+    def fejk_pipeline(faktura):
+        if "trasig" in faktura:
+            raise RuntimeError("simulerat kvotfel")
+        if "tom" in faktura:
+            return None  # extraktionen gav inget
+        return {"items": []}
+
+    monkeypatch.setattr(main_modul, "run_pipeline", fejk_pipeline)
+
+    resultat = main_modul.kor_batch(["bra_1.pdf", "trasig.pdf", "tom.pdf", "bra_2.pdf"])
+
+    assert resultat["lyckade"] == ["bra_1.pdf", "bra_2.pdf"]
+    assert resultat["misslyckade"] == ["trasig.pdf", "tom.pdf"]
+
+
+def test_kor_batch_fortsatter_efter_fel(monkeypatch):
+    """Ett fel i första fakturan får inte stoppa resten av batchen."""
+    import main as main_modul
+
+    anropade = []
+
+    def fejk_pipeline(faktura):
+        anropade.append(faktura)
+        if faktura == "forsta.pdf":
+            raise RuntimeError("simulerat fel")
+        return {"items": []}
+
+    monkeypatch.setattr(main_modul, "run_pipeline", fejk_pipeline)
+
+    resultat = main_modul.kor_batch(["forsta.pdf", "andra.pdf"])
+
+    assert anropade == ["forsta.pdf", "andra.pdf"]  # båda kördes
+    assert resultat["misslyckade"] == ["forsta.pdf"]
+    assert resultat["lyckade"] == ["andra.pdf"]

@@ -127,6 +127,37 @@ def run_pipeline(invoice_path: str) -> dict:
     return audited_data
 
 
+def kor_batch(fakturor: list) -> dict:
+    """
+    Kör pipelinen på varje faktura och håller reda på VILKA som lyckades
+    respektive misslyckades — så att användaren vet exakt vilka filer
+    som behöver köras om (t.ex. efter ett kvotfel).
+
+    Args:
+        fakturor (list): Sökvägar till fakturorna som ska granskas.
+
+    Returns:
+        dict: {"lyckade": [sökvägar], "misslyckade": [sökvägar]}
+    """
+    lyckade = []
+    misslyckade = []
+
+    for faktura in fakturor:
+        print(f"\n=== {faktura} ===")
+        try:
+            resultat = run_pipeline(faktura)
+            if resultat is not None:
+                lyckade.append(faktura)
+            else:
+                misslyckade.append(faktura)
+        except Exception as e:
+            # En trasig faktura (eller kvotfel) ska inte stoppa resten av batchen
+            print(f"FEL vid granskning av {faktura}: {e}")
+            misslyckade.append(faktura)
+
+    return {"lyckade": lyckade, "misslyckade": misslyckade}
+
+
 def main():
     """Kommandoradsingång: kör en faktura eller en hel mapp."""
     parser = argparse.ArgumentParser(
@@ -143,21 +174,16 @@ def main():
     fakturor = hitta_fakturor(args.sokvag)
     print(f"Granskar {len(fakturor)} faktura/fakturor...")
 
-    lyckade, misslyckade = 0, 0
-    for faktura in fakturor:
-        print(f"\n=== {faktura} ===")
-        try:
-            resultat = run_pipeline(faktura)
-            if resultat is not None:
-                lyckade += 1
-            else:
-                misslyckade += 1
-        except Exception as e:
-            # En trasig faktura (eller kvotfel) ska inte stoppa resten av batchen
-            print(f"FEL vid granskning av {faktura}: {e}")
-            misslyckade += 1
+    resultat = kor_batch(fakturor)
 
-    print(f"\nKlart: {lyckade} lyckades, {misslyckade} misslyckades.")
+    print(f"\nKlart: {len(resultat['lyckade'])} lyckades, "
+          f"{len(resultat['misslyckade'])} misslyckades.")
+
+    if resultat["misslyckade"]:
+        print("\nFöljande fakturor misslyckades och behöver köras om:")
+        for faktura in resultat["misslyckade"]:
+            print(f"  - {faktura}")
+        print("\nKör om en enskild faktura med:  python main.py <sökväg>")
 
 
 if __name__ == "__main__":
