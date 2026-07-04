@@ -23,14 +23,14 @@ Hämta din API-nyckel gratis på: https://aistudio.google.com/
 ## Kör pipelinen
 
 ```
-python main.py
+python main.py                    # granskar sample_invoice.pdf (test)
+python main.py min_faktura.pdf    # granskar en specifik faktura
+python main.py fakturamapp/       # granskar ALLA PDF:er i mappen
 ```
 
-Resultatet sparas som `audit_sample_invoice.pdf.csv` och
-`audit_sample_invoice.pdf.pdf` i projektroten.
-
-För att analysera en annan faktura: öppna `main.py` och ändra filnamnet
-i `run_pipeline()`-anropet längst ner i filen.
+Rapporterna (`audit_<fakturanamn>.csv` och `.pdf`) sparas bredvid
+respektive faktura. Vid batchkörning fortsätter pipelinen med nästa
+faktura även om en misslyckas.
 
 ## TARIC-data
 
