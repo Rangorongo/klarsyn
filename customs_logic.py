@@ -65,6 +65,10 @@ def run_customs_audit(final_output: dict) -> dict:
     roda_skal = {i: [] for i in range(len(items))}
     gula_skal = {i: [] for i in range(len(items))}
 
+    # Underlag för åtgärdslistan
+    fta_mojligheter = []      # varor med beräknad möjlig återbetalning
+    fakturatotal_fel = False  # totalbeloppet stämmer inte med raderna
+
     for i, item in enumerate(items):
         description = item.get("description", "Okänd vara")
         hs_code = item.get("hs_code")
@@ -152,6 +156,7 @@ def run_customs_audit(final_output: dict) -> dict:
 
                 if duty_paid > 0 and has_fta:
                     potential_savings += duty_paid
+                    fta_mojligheter.append(description)
                     flags.append(
                         f"💶 Möjlig återbetalning för {description}: "
                         f"upp till {duty_paid:.2f} {currency} "
@@ -183,6 +188,7 @@ def run_customs_audit(final_output: dict) -> dict:
                     f"🧮 Fakturans totalbelopp stämmer inte: radsumma + frakt = "
                     f"{forvantad_total:.2f}, men fakturan anger {float(total_invoice):.2f}"
                 )
+                fakturatotal_fel = True
     except (ValueError, TypeError):
         pass
 
@@ -240,9 +246,68 @@ def run_customs_audit(final_output: dict) -> dict:
             item["verdict_reasons"] = ["Alla kontroller överens"]
         verdict_summary[item["verdict"]] += 1
 
+    # 10. Åtgärdslista — konkreta nästa steg för kunden, hög prioritet först.
+    # Härleds från domskälen så att varje problem får en tydlig handling.
+    action_items = []
+    for i, item in enumerate(items):
+        namn = item.get("description", "Okänd vara")
+        for skal in roda_skal[i]:
+            if "matchar inte TARIC" in skal:
+                action_items.append({
+                    "prioritet": "hög",
+                    "atgard": f"Låt tullombud verifiera HS-koden för {namn} — trolig "
+                              f"felklassificering. Omprövning kan begäras hos Tullverket "
+                              f"upp till 3 år bakåt."
+                })
+            elif "finns inte i TARIC" in skal:
+                action_items.append({
+                    "prioritet": "hög",
+                    "atgard": f"Rätta HS-koden för {namn} — koden finns inte i tulltaxan."
+                })
+            elif "saknas" in skal.lower():
+                action_items.append({
+                    "prioritet": "hög",
+                    "atgard": f"Komplettera fakturaunderlaget från leverantören: "
+                              f"{namn} — {skal.split(' — ')[0].lower()}."
+                })
+            elif "Räknefel" in skal:
+                action_items.append({
+                    "prioritet": "hög",
+                    "atgard": f"Stäm av beloppen för {namn} med leverantören innan "
+                              f"underlaget används i deklarationen."
+                })
+        for skal in gula_skal[i]:
+            if "NAR" in skal:
+                action_items.append({
+                    "prioritet": "medel",
+                    "atgard": f"Låt tullombud beräkna den specifika tullsatsen (NAR) för {namn}."
+                })
+            else:
+                action_items.append({
+                    "prioritet": "medel",
+                    "atgard": f"Dubbelkolla varuraden {namn} mot originalfakturan — {skal}."
+                })
+
+    for namn in fta_mojligheter:
+        action_items.append({
+            "prioritet": "medel",
+            "atgard": f"Begär ursprungsintyg (EUR.1/REX) för {namn} från leverantören och "
+                      f"kontrollera i importdeklarationen om preferenstull yrkades."
+        })
+
+    if fakturatotal_fel:
+        action_items.append({
+            "prioritet": "hög",
+            "atgard": "Stäm av fakturans totalbelopp med leverantören — "
+                      "radsumman plus frakt stämmer inte med angivet totalbelopp."
+        })
+
+    action_items.sort(key=lambda a: 0 if a["prioritet"] == "hög" else 1)
+
     final_output["audit_flags"] = flags
     final_output["potential_savings"] = round(potential_savings, 2)
     final_output["currency"] = currency
     final_output["verdict_summary"] = verdict_summary
+    final_output["action_items"] = action_items
 
     return final_output

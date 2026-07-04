@@ -341,3 +341,43 @@ def test_verdict_reasons_forklarar_domen(taric_data_patchad):
     skal = resultat["items"][0]["verdict_reasons"]
     assert len(skal) >= 1
     assert any("konfidens" in s.lower() for s in skal)
+
+
+# --- Åtgärdslistan (action_items) ---
+
+def test_rod_vara_ger_hog_prioritetsatgard(taric_data_patchad):
+    """En röd vara (saknad HS-kod) ska generera en åtgärd med hög prioritet."""
+    faktura = _bygg_faktura([_vara(description="Okänd pryl", hs_code=None)])
+    resultat = run_customs_audit(faktura)
+    hoga = [a for a in resultat["action_items"] if a["prioritet"] == "hög"]
+    assert len(hoga) >= 1
+    assert any("Okänd pryl" in a["atgard"] for a in hoga)
+
+
+def test_besparing_ger_ursprungsintygsatgard(taric_data_patchad):
+    """💶-besparing ska ge en åtgärd om ursprungsintyg och importdeklarationen."""
+    faktura = _bygg_faktura([_vara(country="JP")])
+    resultat = run_customs_audit(faktura)
+    assert any(
+        "ursprungsintyg" in a["atgard"].lower() and "importdeklaration" in a["atgard"].lower()
+        for a in resultat["action_items"]
+    )
+
+
+def test_felfri_faktura_ger_tom_atgardslista(taric_data_patchad):
+    """En helt grön faktura utan besparingsmöjligheter ska ge tom åtgärdslista."""
+    faktura = _bygg_faktura([_vara()])  # CN: MFN finns men inget FTA, allt stämmer
+    resultat = run_customs_audit(faktura)
+    assert resultat["action_items"] == []
+
+
+def test_atgardslistan_sorteras_hog_forst(taric_data_patchad):
+    """Åtgärder med hög prioritet ska komma före medel i listan."""
+    varor = [
+        _vara(description="FTA-vara", country="JP"),        # medel: ursprungsintyg
+        _vara(description="Trasig vara", hs_code=None),      # hög: saknad HS-kod
+    ]
+    resultat = run_customs_audit(_bygg_faktura(varor))
+    prioriteter = [a["prioritet"] for a in resultat["action_items"]]
+    assert prioriteter == sorted(prioriteter, key=lambda p: 0 if p == "hög" else 1)
+    assert "hög" in prioriteter and "medel" in prioriteter
