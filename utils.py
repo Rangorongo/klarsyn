@@ -59,6 +59,7 @@ _EMOJI_TILL_TAGG = {
     "🔍": "[MANUELL KONTROLL]",
     "🧮": "[RÄKNEFEL]",
     "🟡": "[OSÄKER]",
+    "🚨": "[ANTIDUMPNING]",
 }
 
 _VERDICT_FARG = {"grön": "#1a7f37", "gul": "#b8860b", "röd": "#c0392b"}
@@ -225,3 +226,79 @@ def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
 
     doc.build(story)
     print(f"PDF sparad till {filename}")
+
+
+def save_batch_summary(granskningar: list, misslyckade: list, filename: str):
+    """
+    Skriver en översiktsrapport för en hel batchkörning — helhetsbilden
+    kunden vill se först, innan de enskilda fakturarapporterna.
+
+    Args:
+        granskningar (list): Granskningsresultaten (dictar) för lyckade fakturor.
+        misslyckade (list): Sökvägar till fakturor som inte kunde granskas.
+        filename (str): Var PDF:en ska sparas.
+    """
+    pdfmetrics.registerFont(TTFont("Arial", "C:/Windows/Fonts/arial.ttf"))
+    pdfmetrics.registerFont(TTFont("Arial-Bold", "C:/Windows/Fonts/arialbd.ttf"))
+
+    stil_rubrik = ParagraphStyle("rubrik", fontName="Arial-Bold", fontSize=16,
+                                 alignment=1, spaceAfter=12)
+    stil_h2 = ParagraphStyle("h2", fontName="Arial-Bold", fontSize=12,
+                             spaceBefore=14, spaceAfter=6)
+    stil_normal = ParagraphStyle("normal", fontName="Arial", fontSize=9, leading=12)
+
+    doc = SimpleDocTemplate(
+        filename, pagesize=A4,
+        leftMargin=18 * mm, rightMargin=18 * mm,
+        topMargin=16 * mm, bottomMargin=16 * mm,
+        title="Batchsammanfattning",
+    )
+    story = [Paragraph("Tullsyn — batchsammanfattning", stil_rubrik)]
+
+    # Tabell: en rad per granskad faktura
+    rader = [["Faktura", "Leverantör", "Grön", "Gul", "Röd", "Möjlig återbet."]]
+    total_besparing = 0.0
+    valuta = "EUR"
+    for g in granskningar:
+        summary = g.get("verdict_summary", {})
+        besparing = float(g.get("potential_savings", 0) or 0)
+        total_besparing += besparing
+        valuta = g.get("currency", valuta)
+        rader.append([
+            str(g.get("invoice_number", "?")),
+            str(g.get("supplier_name", "?"))[:30],
+            str(summary.get("grön", 0)),
+            str(summary.get("gul", 0)),
+            str(summary.get("röd", 0)),
+            f"{besparing:.2f}",
+        ])
+    rader.append(["Totalt", "", "", "", "", f"{total_besparing:.2f} {valuta}"])
+
+    tabell = Table(rader, colWidths=[30 * mm, 55 * mm, 15 * mm, 15 * mm, 15 * mm, 35 * mm])
+    tabell.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
+        ("FONTNAME", (0, 1), (-1, -2), "Arial"),
+        ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#999999")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#eeeeee")),
+        ("TEXTCOLOR", (2, 1), (2, -2), colors.HexColor("#1a7f37")),
+        ("TEXTCOLOR", (3, 1), (3, -2), colors.HexColor("#b8860b")),
+        ("TEXTCOLOR", (4, 1), (4, -2), colors.HexColor("#c0392b")),
+    ]))
+    story.append(tabell)
+
+    story.append(Paragraph(
+        "Möjlig återbetalning är en övre gräns — gäller endast om MFN-tull "
+        "betalades vid importen. Se respektive fakturas rapport för detaljer.",
+        ParagraphStyle("liten", fontName="Arial", fontSize=8, leading=10,
+                       textColor=colors.HexColor("#555555"), spaceBefore=6),
+    ))
+
+    if misslyckade:
+        story.append(Paragraph("Fakturor som inte kunde granskas (kör om dessa)", stil_h2))
+        for sokvag in misslyckade:
+            story.append(Paragraph(f"• {_pdf_text(sokvag)}", stil_normal))
+
+    doc.build(story)
+    print(f"Batchsammanfattning sparad till {filename}")

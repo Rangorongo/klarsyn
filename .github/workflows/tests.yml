@@ -1,0 +1,25 @@
+# Kör hela testsviten automatiskt vid varje push till GitHub.
+# windows-latest används för att Arial-fonterna ska finnas (PDF-testerna).
+# TARIC-integrationstestet skippas automatiskt (taric_data/ finns inte i repot)
+# och ingen GOOGLE_API_KEY behövs (inga tester gör riktiga AI-anrop).
+name: Tester
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Installera beroenden
+        run: pip install -r requirements.txt
+
+      - name: Kör testsviten
+        run: pytest -v

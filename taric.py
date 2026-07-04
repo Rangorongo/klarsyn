@@ -182,6 +182,43 @@ def lookup_duty(hs_code: str, country_code: str, taric_data: dict) -> dict:
     }
 
 
+def lookup_antidumping(hs_code: str, country_code: str, taric_data: dict):
+    """
+    Kontrollerar om en vara från ett visst land omfattas av antidumpningstull.
+
+    Antidumpningstullar (measure type 551–554) är extra tullar — ofta 30–70 % —
+    som EU lägger på varor som säljs under marknadspris, vanligast vid
+    Kina-import. En missad antidumpningstull i deklarationen kan ge
+    tulltillägg i efterhand, så varje träff ska flaggas.
+
+    Args:
+        hs_code (str): HS-koden från fakturan, t.ex. '7326.90.98'
+        country_code (str): Ursprungslandets landskod, t.ex. 'CN'
+        taric_data (dict): Inläst TARIC-data från load_taric_data()
+
+    Returns:
+        str | None: Tullsatsen (t.ex. '86.500 %') om en giltig
+        antidumpningsrad finns för kod + land, annars None.
+    """
+    duties_df = taric_data["duties"]
+    clean_hs = hs_code.replace(".", "").ljust(10, "0")
+    country_name = COUNTRY_NAME_MAP.get(country_code.upper(), country_code)
+
+    matches = duties_df[
+        (duties_df["Goods code"].str.strip() == clean_hs) &
+        (duties_df["Meas. type code"].isin(["551", "552", "553", "554"])) &
+        (
+            (duties_df["Origin code"].str.upper() == country_code.upper()) |
+            (duties_df["Origin"].str.strip() == country_name)
+        )
+    ]
+    matches = _giltiga_rader(matches)
+
+    if matches.empty:
+        return None
+    return str(matches["Duty"].iloc[0]).strip()
+
+
 def verify_hs_description(hs_code: str, item_description: str, taric_data: dict) -> dict:
     """
     Kontrollerar att HS-koden matchar varans beskrivning i TARIC-nomenklaturen.

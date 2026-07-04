@@ -109,3 +109,31 @@ def test_save_to_pdf_klarar_manga_varor_utan_krasch(tmp_path):
     pdf_fil = tmp_path / "many.pdf"
     save_to_pdf(final_data, str(pdf_fil))
     assert pdf_fil.exists()
+
+
+@pytest.mark.skipif(not ARIAL_FINNS, reason="Arial-fonter saknas — PDF-testet kräver Windows")
+def test_save_batch_summary_skapar_oversikt(tmp_path):
+    """Batchöversikten ska sammanfatta flera fakturor + lista misslyckade."""
+    from utils import save_batch_summary
+
+    granskningar = [
+        {
+            "invoice_number": "INV-001",
+            "supplier_name": "Leverantör A",
+            "currency": "EUR",
+            "potential_savings": 120.50,
+            "verdict_summary": {"grön": 3, "gul": 1, "röd": 0},
+        },
+        {
+            "invoice_number": "INV-002",
+            "supplier_name": "Leverantör B",
+            "currency": "EUR",
+            "potential_savings": 0.0,
+            "verdict_summary": {"grön": 1, "gul": 0, "röd": 2},
+        },
+    ]
+    pdf_fil = tmp_path / "batch_sammanfattning.pdf"
+    save_batch_summary(granskningar, ["trasig_faktura.pdf"], str(pdf_fil))
+
+    assert pdf_fil.exists()
+    assert pdf_fil.stat().st_size > 1000

@@ -331,6 +331,31 @@ def test_villkorstull_ger_lupp_flagga_och_gul_dom(taric_data_patchad):
     assert resultat["items"][0]["verdict"] == "gul"
 
 
+def test_antidumpning_ger_larm_gul_dom_och_hog_atgard(taric_data_patchad):
+    """
+    Stålartiklar från Kina omfattas av antidumpningstull (86.5 %) —
+    ska ge 🚨-flagga, gul dom och en åtgärd med HÖG prioritet
+    (missad ADD kan ge tulltillägg).
+    """
+    faktura = _bygg_faktura([
+        _vara(description="Stålkonsoler", hs_code="7326.90.98", country="CN")
+    ])
+    resultat = run_customs_audit(faktura)
+    assert any("🚨" in f and "86.500 %" in f for f in resultat["audit_flags"])
+    assert resultat["items"][0]["verdict"] == "gul"
+    assert any(
+        a["prioritet"] == "hög" and "antidumpning" in a["atgard"].lower()
+        for a in resultat["action_items"]
+    )
+
+
+def test_ingen_antidumpningsflagga_utan_add(taric_data_patchad):
+    """Vara utan antidumpningsrad ska inte få 🚨-flagga."""
+    faktura = _bygg_faktura([_vara()])
+    resultat = run_customs_audit(faktura)
+    assert not any("🚨" in f for f in resultat["audit_flags"])
+
+
 def test_verdict_summary_raknar_ratt(taric_data_patchad):
     """verdict_summary ska räkna antal gröna/gula/röda över alla varor."""
     varor = [

@@ -21,7 +21,7 @@ Viktigt om besparingsbeloppen:
     rapporten, så att vi aldrig lovar kunden pengar som inte finns.
 """
 
-from taric import load_taric_data, lookup_duty, verify_hs_description
+from taric import load_taric_data, lookup_antidumping, lookup_duty, verify_hs_description
 from verifier import verify_hs_matches
 
 
@@ -67,6 +67,7 @@ def run_customs_audit(final_output: dict) -> dict:
 
     # Underlag för åtgärdslistan
     fta_mojligheter = []      # varor med beräknad möjlig återbetalning
+    add_varor = []            # varor med möjlig antidumpningstull
     fakturatotal_fel = False  # totalbeloppet stämmer inte med raderna
 
     for i, item in enumerate(items):
@@ -126,6 +127,18 @@ def run_customs_audit(final_output: dict) -> dict:
         item["taric_description"] = taric_description
         item["has_fta"] = has_fta
         item["preferential_duty"] = preferential_duty
+
+        # 2b. Antidumpningstull? Missad ADD kan ge tulltillägg i efterhand.
+        add_duty = lookup_antidumping(hs_code, country, taric_data)
+        if add_duty:
+            flags.append(
+                f"🚨 Antidumpningstull kan gälla för {description} från {country}: "
+                f"{add_duty} — kontrollera att den deklarerats"
+            )
+            gula_skal[i].append(
+                f"Antidumpningstull kan gälla ({add_duty}) — kontrollera deklarationen"
+            )
+            add_varor.append(description)
 
         # 3. Flagga om HS-koden inte hittas i TARIC
         if taric_description == "Ej hittad":
@@ -283,11 +296,20 @@ def run_customs_audit(final_output: dict) -> dict:
                     "atgard": f"Låt tullombud bedöma specialtullsatsen för {namn} "
                               f"(NAR eller villkorsbaserad sats)."
                 })
+            elif "Antidumpning" in skal:
+                continue  # får en egen hög-prioritetsåtgärd nedan
             else:
                 action_items.append({
                     "prioritet": "medel",
                     "atgard": f"Dubbelkolla varuraden {namn} mot originalfakturan — {skal}."
                 })
+
+    for namn in add_varor:
+        action_items.append({
+            "prioritet": "hög",
+            "atgard": f"Kontrollera omgående att antidumpningstullen deklarerats "
+                      f"för {namn} — missad ADD kan ge tulltillägg i efterhand."
+        })
 
     for namn in fta_mojligheter:
         action_items.append({

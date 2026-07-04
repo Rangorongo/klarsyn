@@ -29,14 +29,26 @@ from langgraph.graph import StateGraph, END
 import pdfplumber
 from models import CustomsGraphState
 from extractor import extract_invoice_data
-from utils import mask_pii, save_to_csv, save_to_pdf
+from utils import mask_pii, save_batch_summary, save_to_csv, save_to_pdf
 from customs_logic import run_customs_audit
 
 
 def load_pdf_text(path: str) -> str:
-    """Hjälpfunktion för att läsa in text från en PDF."""
+    """
+    Hjälpfunktion för att läsa in text från en PDF.
+
+    Ger ett tydligt fel om PDF:en saknar läsbar text (inskannad bild) —
+    annars skulle AI:n få en tom text och ge obegripliga svar.
+    """
     with pdfplumber.open(path) as pdf:
         full_text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+
+    if not full_text.strip():
+        raise ValueError(
+            f"Ingen läsbar text hittades i {path} — PDF:en verkar vara inskannad "
+            f"(en bild av en faktura, inte digital text). OCR stöds inte ännu: "
+            f"be leverantören om en digital PDF, eller konvertera med ett OCR-verktyg."
+        )
     return full_text
 
 
@@ -137,10 +149,12 @@ def kor_batch(fakturor: list) -> dict:
         fakturor (list): Sökvägar till fakturorna som ska granskas.
 
     Returns:
-        dict: {"lyckade": [sökvägar], "misslyckade": [sökvägar]}
+        dict: {"lyckade": [sökvägar], "misslyckade": [sökvägar],
+               "granskningar": [granskningsresultat för de lyckade]}
     """
     lyckade = []
     misslyckade = []
+    granskningar = []
 
     for faktura in fakturor:
         print(f"\n=== {faktura} ===")
@@ -148,6 +162,7 @@ def kor_batch(fakturor: list) -> dict:
             resultat = run_pipeline(faktura)
             if resultat is not None:
                 lyckade.append(faktura)
+                granskningar.append(resultat)
             else:
                 misslyckade.append(faktura)
         except Exception as e:
@@ -155,7 +170,7 @@ def kor_batch(fakturor: list) -> dict:
             print(f"FEL vid granskning av {faktura}: {e}")
             misslyckade.append(faktura)
 
-    return {"lyckade": lyckade, "misslyckade": misslyckade}
+    return {"lyckade": lyckade, "misslyckade": misslyckade, "granskningar": granskningar}
 
 
 def main():
@@ -175,6 +190,15 @@ def main():
     print(f"Granskar {len(fakturor)} faktura/fakturor...")
 
     resultat = kor_batch(fakturor)
+
+    # Vid mappkörning med flera fakturor: skriv en översiktsrapport
+    if len(fakturor) > 1 and resultat["granskningar"]:
+        mapp = args.sokvag if os.path.isdir(args.sokvag) else os.path.dirname(fakturor[0])
+        save_batch_summary(
+            resultat["granskningar"],
+            resultat["misslyckade"],
+            os.path.join(mapp, "batch_sammanfattning.pdf"),
+        )
 
     print(f"\nKlart: {len(resultat['lyckade'])} lyckades, "
           f"{len(resultat['misslyckade'])} misslyckades.")

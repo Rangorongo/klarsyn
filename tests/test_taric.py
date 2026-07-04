@@ -7,7 +7,7 @@ Inga riktiga Excel-filer behövs och inga nätverksanrop görs.
 
 import os
 import pytest
-from taric import lookup_duty, verify_hs_description
+from taric import lookup_antidumping, lookup_duty, verify_hs_description
 
 
 def test_hs_normalisering_tar_bort_punkter_och_fyller_till_10(taric_data_syntetisk):
@@ -95,6 +95,33 @@ def test_villkorstull_ger_manuell_kontroll(taric_data_syntetisk):
     resultat = lookup_duty("2007.10.91", "CN", taric_data_syntetisk)
     assert "manuell kontroll" in resultat["mfn_duty"].lower()
     assert "villkorstull" in resultat["mfn_duty"].lower()
+
+
+# --- Antidumpningstullar (measure 551-554) ---
+
+def test_antidumpning_hittas_for_ratt_land(taric_data_syntetisk):
+    """Stålartiklar (7326909800) från Kina har en giltig antidumpningsrad (86.5 %)."""
+    resultat = lookup_antidumping("7326.90.98", "CN", taric_data_syntetisk)
+    assert resultat == "86.500 %"
+
+
+def test_antidumpning_ger_none_for_annat_land(taric_data_syntetisk):
+    """Samma vara från Japan har ingen antidumpningstull → None."""
+    assert lookup_antidumping("7326.90.98", "JP", taric_data_syntetisk) is None
+
+
+def test_utgangen_antidumpning_raknas_inte(taric_data_syntetisk):
+    """
+    Den utgångna ADD-raden (48.100 %, t.o.m. 2020) ska INTE returneras —
+    bara den giltiga (86.500 %).
+    """
+    resultat = lookup_antidumping("7326.90.98", "CN", taric_data_syntetisk)
+    assert resultat != "48.100 %"
+
+
+def test_antidumpning_ger_none_for_kod_utan_add(taric_data_syntetisk):
+    """Kretskort (8534000000) har ingen antidumpningsrad alls → None."""
+    assert lookup_antidumping("8534.00.00", "CN", taric_data_syntetisk) is None
 
 
 # --- Integrationstest (kör bara om taric_data/ finns) ---

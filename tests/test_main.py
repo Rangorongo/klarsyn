@@ -7,7 +7,23 @@ logiken som avgör VILKA fakturor som ska köras.
 """
 
 import pytest
-from main import hitta_fakturor
+from main import hitta_fakturor, load_pdf_text
+
+
+def test_skannad_pdf_ger_begripligt_fel(tmp_path):
+    """
+    En PDF utan läsbar text (t.ex. inskannad bild) ska ge ett tydligt
+    svenskt felmeddelande — inte en tom text som ger obegripliga AI-fel.
+    """
+    from reportlab.pdfgen import canvas
+
+    tom_pdf = tmp_path / "skannad.pdf"
+    c = canvas.Canvas(str(tom_pdf))
+    c.rect(100, 100, 200, 200)  # bara grafik, ingen text
+    c.save()
+
+    with pytest.raises(ValueError, match="inskannad"):
+        load_pdf_text(str(tom_pdf))
 
 
 def test_enskild_pdf_ger_lista_med_en(tmp_path):
@@ -69,6 +85,8 @@ def test_kor_batch_listar_vilka_som_misslyckades(monkeypatch):
 
     assert resultat["lyckade"] == ["bra_1.pdf", "bra_2.pdf"]
     assert resultat["misslyckade"] == ["trasig.pdf", "tom.pdf"]
+    # Granskningsresultaten samlas in för batch-översiktsrapporten
+    assert len(resultat["granskningar"]) == 2
 
 
 def test_kor_batch_fortsatter_efter_fel(monkeypatch):
