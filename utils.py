@@ -100,12 +100,19 @@ def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
         )
         y -= 20
 
-    # Potentiella besparingar
+    # Möjliga besparingar — alltid formulerat som övre gräns, aldrig som löfte.
+    # Fakturan visar inte vilken tull som betalades (det gör importdeklarationen),
+    # så rapporten får aldrig påstå att pengarna säkert finns att hämta.
     savings = final_data.get("potential_savings", 0)
     if savings > 0:
         y -= 10
         c.setFont("Arial-Bold", 12)
-        c.drawString(50, y, f"Potentiell återbetalning: {savings} {final_data.get('currency', 'EUR')}")
+        c.drawString(50, y, f"Möjlig återbetalning (övre gräns): {savings} {final_data.get('currency', 'EUR')}")
+        y -= 16
+        c.setFont("Arial", 9)
+        c.drawString(50, y, "Beloppet gäller endast om MFN-tull betalades vid importen. Verifiera alltid mot")
+        y -= 12
+        c.drawString(50, y, "importdeklarationen innan återbetalning söks hos Tullverket.")
         y -= 25
 
     # Flaggningar

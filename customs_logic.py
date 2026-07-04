@@ -9,11 +9,30 @@ Huvudsakliga uppgifter:
     - Slår upp korrekt tullsats för varje vara via TARIC
     - Kontrollerar att HS-koden matchar varubeskrivningen
     - Identifierar om frihandelsavtal kunde ha utnyttjats
-    - Beräknar potentiell återbetalning i EUR
+    - Beräknar möjlig återbetalning i EUR (övre gräns — se nedan)
+    - Kontrollerar fakturans aritmetik (antal × pris, radsumma + frakt)
+    - Lyfter fram varor där AI:ns självkontroll var osäker
     - Flaggar alla avvikelser för manuell granskning
+
+Viktigt om besparingsbeloppen:
+    Fakturan visar aldrig vilken tull som faktiskt BETALADES — det gör bara
+    importdeklarationen. Beloppen här är därför en ÖVRE GRÄNS som gäller
+    endast om MFN-tull betalades vid importen. Det ska alltid framgå i
+    rapporten, så att vi aldrig lovar kunden pengar som inte finns.
 """
 
 from taric import load_taric_data, lookup_duty, verify_hs_description
+
+
+def _avviker(forvantat: float, faktiskt: float) -> bool:
+    """
+    Avgör om två belopp skiljer sig mer än toleransen.
+
+    Toleransen är 1 öre/cent eller 0,5 % av det förväntade beloppet
+    (det största av dem) — vanliga avrundningsören ska inte ge falsklarm.
+    """
+    tolerans = max(0.01, 0.005 * abs(forvantat))
+    return abs(forvantat - faktiskt) > tolerans
 
 
 def run_customs_audit(final_output: dict) -> dict:
@@ -47,7 +66,30 @@ def run_customs_audit(final_output: dict) -> dict:
         total_price = float(item.get("total_item_price") or 0)
         shipping = float(final_output.get("shipping_cost") or 0)
 
-        # 1. Kontrollera att HS-kod och ursprungsland finns
+        # 1a. Aritmetikkontroll: antal × styckpris ska stämma med radpriset.
+        # Körs FÖRE HS-kontrollen — räknefel ska hittas även på ofullständiga rader.
+        try:
+            quantity = item.get("quantity")
+            unit_price = item.get("unit_price")
+            if quantity is not None and unit_price is not None:
+                forvantat_radpris = float(quantity) * float(unit_price)
+                if _avviker(forvantat_radpris, total_price):
+                    flags.append(
+                        f"🧮 Räknefel på varurad: {description} — "
+                        f"{quantity} × {unit_price} = {forvantat_radpris:.2f}, "
+                        f"men radpriset anger {total_price:.2f}"
+                    )
+        except (ValueError, TypeError):
+            pass
+
+        # 1b. Lyft fram varor där AI:ns självkontroll var osäker
+        if item.get("confidence") == "låg":
+            anledning = item.get("review_note") or "ingen specifik anledning angiven"
+            flags.append(
+                f"🟡 Låg konfidens från AI-granskningen för {description}: {anledning}"
+            )
+
+        # 1c. Kontrollera att HS-kod och ursprungsland finns
         if not hs_code:
             flags.append(f"⚠️ Saknar HS-kod: {description}")
             continue
@@ -97,9 +139,11 @@ def run_customs_audit(final_output: dict) -> dict:
                 if duty_paid > 0 and has_fta:
                     potential_savings += duty_paid
                     flags.append(
-                        f"💶 Potentiell återbetalning för {description}: "
-                        f"{duty_paid:.2f} {currency} "
-                        f"(MFN {mfn_duty} på tullvärde {customs_value:.2f} {currency})"
+                        f"💶 Möjlig återbetalning för {description}: "
+                        f"upp till {duty_paid:.2f} {currency} "
+                        f"(MFN {mfn_duty} på tullvärde {customs_value:.2f} {currency}) "
+                        f"— gäller endast om MFN-tull betalades vid importen, "
+                        f"kontrollera importdeklarationen"
                     )
         except (ValueError, TypeError):
             pass
@@ -110,6 +154,22 @@ def run_customs_audit(final_output: dict) -> dict:
                 f"🔍 Manuell kontroll krävs för {description} ({hs_code}) "
                 f"— specifik tullsats (NAR) gäller, ej procentbaserad"
             )
+
+    # 7. Aritmetikkontroll på fakturanivå: radsumma + frakt ska stämma
+    # med fakturans totalbelopp (om det finns angivet).
+    try:
+        total_invoice = final_output.get("total_invoice_amount")
+        if total_invoice is not None and items:
+            radsumma = sum(float(i.get("total_item_price") or 0) for i in items)
+            frakt = float(final_output.get("shipping_cost") or 0)
+            forvantad_total = radsumma + frakt
+            if _avviker(forvantad_total, float(total_invoice)):
+                flags.append(
+                    f"🧮 Fakturans totalbelopp stämmer inte: radsumma + frakt = "
+                    f"{forvantad_total:.2f}, men fakturan anger {float(total_invoice):.2f}"
+                )
+    except (ValueError, TypeError):
+        pass
 
     final_output["audit_flags"] = flags
     final_output["potential_savings"] = round(potential_savings, 2)
