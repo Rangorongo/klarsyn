@@ -48,20 +48,52 @@ COUNTRY_NAME_MAP = {
 }
 
 
+# Cache på modulnivå: Excel-filerna (~8 MB) läses bara EN gång per körning.
+# Vid batchkörning av många fakturor sparar det ~30 sekunder per faktura.
+_TARIC_CACHE = None
+
+
 def load_taric_data() -> dict:
     """
     Läser in alla TARIC Excel-filer en gång och returnerar dem som DataFrames.
+    Efterföljande anrop återanvänder samma data (cache) — ingen omläsning.
 
     Returns:
         dict: Innehåller fyra DataFrames: duties, geo_areas, geo_comp, nomenclature
     """
-    print("Laddar TARIC-data...")
-    return {
-        "duties": pd.read_excel(DUTIES_PATH, dtype=str),
-        "geo_areas": pd.read_excel(GEO_AREAS_PATH, dtype=str),
-        "geo_comp": pd.read_excel(GEO_COMP_PATH, dtype=str),
-        "nomenclature": pd.read_excel(NOMENCLATURE_PATH, dtype=str),
-    }
+    global _TARIC_CACHE
+    if _TARIC_CACHE is None:
+        print("Laddar TARIC-data...")
+        _TARIC_CACHE = {
+            "duties": pd.read_excel(DUTIES_PATH, dtype=str),
+            "geo_areas": pd.read_excel(GEO_AREAS_PATH, dtype=str),
+            "geo_comp": pd.read_excel(GEO_COMP_PATH, dtype=str),
+            "nomenclature": pd.read_excel(NOMENCLATURE_PATH, dtype=str),
+        }
+    return _TARIC_CACHE
+
+
+def _giltiga_rader(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filtrerar bort tullrader som inte gäller idag.
+
+    TARIC-datan innehåller både utgångna och framtida tullsatser (kolumnerna
+    Start date/End date, format DD-MM-ÅÅÅÅ). Utan detta filter kan en
+    utgången sats råka väljas — ett verkligt korrekthetsfel.
+
+    Rader med saknade eller oparsbara datum behålls (hellre en rad för
+    mycket att granska än en missad tullsats).
+    """
+    if "Start date" not in df.columns or df.empty:
+        return df
+
+    idag = pd.Timestamp.today().normalize()
+    start = pd.to_datetime(df["Start date"], format="%d-%m-%Y", errors="coerce")
+    slut = pd.to_datetime(df.get("End date"), format="%d-%m-%Y", errors="coerce")
+
+    har_borjat = start.isna() | (start <= idag)
+    har_inte_slutat = slut.isna() | (slut >= idag)
+    return df[har_borjat & har_inte_slutat]
 
 
 def lookup_duty(hs_code: str, country_code: str, taric_data: dict) -> dict:
@@ -96,6 +128,8 @@ def lookup_duty(hs_code: str, country_code: str, taric_data: dict) -> dict:
     duties_df = taric_data["duties"]
     clean_hs = hs_code.replace(".", "").ljust(10, "0")
     matches = duties_df[duties_df["Goods code"].str.strip() == clean_hs]
+    # Bara tullsatser som gäller idag — utgångna/framtida rader sorteras bort
+    matches = _giltiga_rader(matches)
 
     if matches.empty:
         return {
@@ -114,8 +148,16 @@ def lookup_duty(hs_code: str, country_code: str, taric_data: dict) -> dict:
     ]
 
     if not mfn.empty:
-        duty_val = mfn["Duty"].iloc[0]
-        mfn_duty = "Kräver manuell kontroll (NAR)" if str(duty_val).strip() == "NAR" else duty_val
+        duty_val = str(mfn["Duty"].iloc[0]).strip()
+        if duty_val == "NAR":
+            # Specifik tullsats (per kg/styck) — inte procentbaserad
+            mfn_duty = "Kräver manuell kontroll (NAR)"
+        elif "Cond" in duty_val:
+            # Villkorsbaserad tullsats — beror på certifikat/villkor och
+            # kan inte tolkas som en enkel procent
+            mfn_duty = "Kräver manuell kontroll (villkorstull)"
+        else:
+            mfn_duty = duty_val
     else:
         mfn_duty = "0% (ingen MFN-rad — troligen tullfri)"
 

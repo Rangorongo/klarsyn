@@ -168,12 +168,12 @@ def run_customs_audit(final_output: dict) -> dict:
             pass
 
         # 6. Flagga NAR-tullar som kräver manuell kontroll
-        if "NAR" in str(mfn_duty):
+        if "manuell kontroll" in str(mfn_duty).lower():
             flags.append(
                 f"🔍 Manuell kontroll krävs för {description} ({hs_code}) "
-                f"— specifik tullsats (NAR) gäller, ej procentbaserad"
+                f"— {mfn_duty}"
             )
-            gula_skal[i].append("Specifik tullsats (NAR) — kräver manuell kontroll")
+            gula_skal[i].append(f"Specialtullsats ({mfn_duty}) — kräver manuell kontroll")
 
     # 7. Aritmetikkontroll på fakturanivå: radsumma + frakt ska stämma
     # med fakturans totalbelopp (om det finns angivet).
@@ -277,10 +277,11 @@ def run_customs_audit(final_output: dict) -> dict:
                               f"underlaget används i deklarationen."
                 })
         for skal in gula_skal[i]:
-            if "NAR" in skal:
+            if "NAR" in skal or "villkorstull" in skal:
                 action_items.append({
                     "prioritet": "medel",
-                    "atgard": f"Låt tullombud beräkna den specifika tullsatsen (NAR) för {namn}."
+                    "atgard": f"Låt tullombud bedöma specialtullsatsen för {namn} "
+                              f"(NAR eller villkorsbaserad sats)."
                 })
             else:
                 action_items.append({

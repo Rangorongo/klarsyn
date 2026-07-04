@@ -323,6 +323,14 @@ def test_nar_ger_gul_dom(taric_data_patchad):
     assert resultat["items"][0]["verdict"] == "gul"
 
 
+def test_villkorstull_ger_lupp_flagga_och_gul_dom(taric_data_patchad):
+    """Villkorstull (Cond:) ska precis som NAR ge 🔍-flagga och gul dom."""
+    faktura = _bygg_faktura([_vara(description="Sylt", hs_code="2007.10.91")])
+    resultat = run_customs_audit(faktura)
+    assert any("🔍" in f for f in resultat["audit_flags"])
+    assert resultat["items"][0]["verdict"] == "gul"
+
+
 def test_verdict_summary_raknar_ratt(taric_data_patchad):
     """verdict_summary ska räkna antal gröna/gula/röda över alla varor."""
     varor = [

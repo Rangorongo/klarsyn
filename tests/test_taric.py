@@ -72,6 +72,31 @@ def test_verify_hs_description_okand_kod_ger_ej_hittad(taric_data_syntetisk):
     assert resultat["taric_description"] == "Ej hittad"
 
 
+# --- Datumfiltrering: rätt tullsats bland flera rader ---
+
+def test_utgangen_tullsats_valjs_inte(taric_data_syntetisk):
+    """
+    7318150000 har tre MFN-rader: utgången (9.900 %, t.o.m. 2021),
+    giltig (3.700 %, fr.o.m. 2022) och framtida (1.000 %, fr.o.m. 2030).
+    Datumfiltret ska välja den GILTIGA satsen — inte den som råkar ligga först.
+    """
+    resultat = lookup_duty("7318.15.00", "CN", taric_data_syntetisk)
+    assert resultat["mfn_duty"] == "3.700 %"
+
+
+# --- Villkorstullar (Cond:) ---
+
+def test_villkorstull_ger_manuell_kontroll(taric_data_syntetisk):
+    """
+    Duty som börjar med 'Cond:' är en villkorsbaserad tullsats — den kan
+    inte tolkas som en enkel procent och ska flaggas för manuell kontroll,
+    inte se ut som tullfri.
+    """
+    resultat = lookup_duty("2007.10.91", "CN", taric_data_syntetisk)
+    assert "manuell kontroll" in resultat["mfn_duty"].lower()
+    assert "villkorstull" in resultat["mfn_duty"].lower()
+
+
 # --- Integrationstest (kör bara om taric_data/ finns) ---
 
 TARIC_MAPP = os.path.join(os.path.dirname(__file__), "..", "taric_data")
@@ -84,9 +109,12 @@ def test_riktiga_taric_filer_har_ratt_kolumner():
     """
     Läser de riktiga Excel-filerna och verifierar att förväntade kolumner finns.
     Fångar om EU ändrar filformatet vid en månadsvis uppdatering.
+    Verifierar också cachen: andra anropet ska återanvända samma data
+    istället för att läsa om 8 MB Excel.
     """
     from taric import load_taric_data
     data = load_taric_data()
+    assert load_taric_data() is data  # cache: samma objekt, ingen omläsning
 
     obligatoriska_duties_kolumner = [
         "Goods code", "Origin", "Origin code", "Duty", "Meas. type code"

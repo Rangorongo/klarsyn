@@ -27,18 +27,40 @@ def taric_data_syntetisk():
         - 8534000000: MFN-tull 3.3% (ERGA OMNES) + preferenstull 0% för Japan
         - 8542319000: MFN-tull är NAR (specifik sats, ej procent)
     """
+    # Datumformatet är samma som i riktiga TARIC-filerna: DD-MM-ÅÅÅÅ.
+    # 7318150000 (skruvar) har TRE MFN-rader: en utgången, en giltig och en
+    # framtida — datumfiltret ska välja den giltiga (3.700 %).
+    # 2007109100 (sylt) har en villkorstull (Cond:) som ska flaggas.
     duties = pd.DataFrame({
-        "Goods code":      ["8534000000", "8534000000", "8542319000"],
-        "Origin":          ["ERGA OMNES", "Japan",      "ERGA OMNES"],
-        "Origin code":     ["1011",       "JP",         "1011"],
-        "Meas. type code": ["103",        "142",        "103"],
-        "Duty":            ["3.300 %",    "0.000 %",    "NAR"],
+        "Goods code":      ["8534000000", "8534000000", "8542319000",
+                            "7318150000", "7318150000", "7318150000",
+                            "2007109100"],
+        "Origin":          ["ERGA OMNES", "Japan",      "ERGA OMNES",
+                            "ERGA OMNES", "ERGA OMNES", "ERGA OMNES",
+                            "ERGA OMNES"],
+        "Origin code":     ["1011",       "JP",         "1011",
+                            "1011",       "1011",       "1011",
+                            "1011"],
+        "Meas. type code": ["103",        "142",        "103",
+                            "103",        "103",        "103",
+                            "103"],
+        "Duty":            ["3.300 %",    "0.000 %",    "NAR",
+                            "9.900 %",    "3.700 %",    "1.000 %",
+                            "Cond:  A cert: D-008 (01):10.000 %"],
+        "Start date":      ["01-01-2020", "01-01-2020", "01-01-2020",
+                            "01-01-2019", "01-01-2022", "01-01-2030",
+                            "01-01-2022"],
+        "End date":        [None,         None,         None,
+                            "31-12-2021", None,         None,
+                            None],
     })
 
     nomenclature = pd.DataFrame({
         # OBS: Goods code i nomenklaturen har suffix (t.ex. " 80") — koden matchar på [:10]
-        "Goods code":  ["8534000000 80",   "8542319000 80"],
-        "Description": ["Printed circuits", "Integrated circuits"],
+        "Goods code":  ["8534000000 80",   "8542319000 80",
+                        "7318150000 80",   "2007109100 80"],
+        "Description": ["Printed circuits", "Integrated circuits",
+                        "Screws and bolts", "Jams and homogenised preparations"],
     })
 
     return {
