@@ -5,6 +5,9 @@
 __pycache__/
 *.pyc
 
+# Pytests cache-mapp
+.pytest_cache/
+
 # Genererade rapport-filer från pipelinen
 audit_*.csv
 audit_*.pdf
