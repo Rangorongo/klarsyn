@@ -17,6 +17,10 @@ import os
 import sys
 from datetime import date
 
+# Windows-terminalen använder cp1252 som standard och kraschar på tecken
+# som ≈ och emoji — tvinga UTF-8 så att utskrifterna alltid fungerar.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # Gör att skriptet hittar main.py oavsett varifrån det körs
 PROJEKTROT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJEKTROT)
