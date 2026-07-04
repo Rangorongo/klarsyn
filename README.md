@@ -51,3 +51,15 @@ pytest
 ```
 
 Testerna kör utan nätverk och utan `taric_data/`-mappen.
+
+## Eval — mät träffsäkerheten
+
+`eval/` innehåller 5 testfakturor med kända planterade fel och ett facit.
+
+```
+python eval/generera_testfakturor.py   # skapa om fakturorna (kvotfritt)
+python eval/kor_eval.py                # kör hela setet (15 API-anrop!)
+python eval/kor_eval.py eval_02_felklassificerad.pdf   # kör en enstaka
+```
+
+Resultatet skrivs till konsolen och `eval/resultat.md`.
