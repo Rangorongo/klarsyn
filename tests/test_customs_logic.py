@@ -228,3 +228,116 @@ def test_besparingsflaggan_ar_arligt_formulerad(taric_data_patchad):
     assert len(euro_flaggor) == 1
     assert "om MFN-tull betalades" in euro_flaggor[0]
     assert "importdeklarationen" in euro_flaggor[0]
+
+
+def test_eu_vara_far_ingen_besparingsflagga(taric_data_patchad):
+    """
+    EU-varor (t.ex. Polen) har ingen importtull alls — det finns inget att
+    'spara'. En 💰-flagga vore vilseledande brus för kunden.
+    """
+    faktura = _bygg_faktura([_vara(country="PL")])
+    resultat = run_customs_audit(faktura)
+    assert not any("💰" in f for f in resultat["audit_flags"])
+    assert not any("💶" in f for f in resultat["audit_flags"])
+
+
+# --- Konfidensarkitekturen: slutdom per vara (grön/gul/röd) ---
+
+def test_allt_stammer_ger_gron_dom(taric_data_patchad):
+    """Vara där alla signaler är ok och AI säger 'ja' ska få domen grön."""
+    faktura = _bygg_faktura([_vara()])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "grön"
+
+
+def test_ai_sager_nej_ger_rod_dom_och_flagga(taric_data_patchad, monkeypatch):
+    """AI-bedömning 'nej' = trolig felklassificering → röd dom + 🔴-flagga med motivering."""
+    monkeypatch.setattr(
+        "customs_logic.verify_hs_matches",
+        lambda rader: {r["index"]: ("nej", "Beskrivningen avser en helt annan varutyp.") for r in rader}
+    )
+    faktura = _bygg_faktura([_vara()])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "röd"
+    assert any(
+        "🔴" in f and "Beskrivningen avser en helt annan varutyp." in f
+        for f in resultat["audit_flags"]
+    )
+
+
+def test_ai_sager_osaker_ger_gul_dom(taric_data_patchad, monkeypatch):
+    """AI-bedömning 'osäker' ska ge gul dom."""
+    monkeypatch.setattr(
+        "customs_logic.verify_hs_matches",
+        lambda rader: {r["index"]: ("osäker", "Beskrivningen är för vag.") for r in rader}
+    )
+    faktura = _bygg_faktura([_vara()])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "gul"
+
+
+def test_misslyckad_ai_verifiering_ger_gul_dom(taric_data_patchad, monkeypatch):
+    """
+    Om AI-verifieringen inte kan köras (kvot slut → None) ska varan bli gul
+    med en notering — pipelinen får ALDRIG krascha på kvotfel.
+    """
+    monkeypatch.setattr("customs_logic.verify_hs_matches", lambda rader: None)
+    faktura = _bygg_faktura([_vara()])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "gul"
+    assert any("kunde inte köras" in skal for skal in resultat["items"][0]["verdict_reasons"])
+
+
+def test_raknefel_ger_rod_dom(taric_data_patchad):
+    """Räknefel på raden är en hård motsägelse → röd dom, även om AI säger 'ja'."""
+    faktura = _bygg_faktura([_vara(quantity=2, unit_price=10.0, total_price=25.0)])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "röd"
+
+
+def test_lag_konfidens_ger_gul_dom(taric_data_patchad):
+    """Låg konfidens från självkontrollen → gul dom (om inget rött finns)."""
+    faktura = _bygg_faktura([_vara(confidence="låg", review_note="Otydlig text")])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "gul"
+
+
+def test_saknad_hs_kod_ger_rod_dom(taric_data_patchad):
+    """Utan HS-kod kan varan inte granskas alls → röd dom."""
+    faktura = _bygg_faktura([_vara(hs_code=None)])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "röd"
+
+
+def test_hs_kod_ej_i_taric_ger_rod_dom(taric_data_patchad):
+    """HS-kod som inte finns i TARIC → röd dom."""
+    faktura = _bygg_faktura([_vara(hs_code="9999999999")])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "röd"
+
+
+def test_nar_ger_gul_dom(taric_data_patchad):
+    """NAR-tullsats kräver manuell kontroll → gul dom (om inget rött finns)."""
+    faktura = _bygg_faktura([_vara(hs_code="8542.31.90")])
+    resultat = run_customs_audit(faktura)
+    assert resultat["items"][0]["verdict"] == "gul"
+
+
+def test_verdict_summary_raknar_ratt(taric_data_patchad):
+    """verdict_summary ska räkna antal gröna/gula/röda över alla varor."""
+    varor = [
+        _vara(description="Grön vara"),
+        _vara(description="Gul vara", confidence="låg", review_note="Otydligt"),
+        _vara(description="Röd vara", hs_code=None),
+    ]
+    resultat = run_customs_audit(_bygg_faktura(varor))
+    assert resultat["verdict_summary"] == {"grön": 1, "gul": 1, "röd": 1}
+
+
+def test_verdict_reasons_forklarar_domen(taric_data_patchad):
+    """Domen ska alltid åtföljas av begripliga skäl i verdict_reasons."""
+    faktura = _bygg_faktura([_vara(confidence="låg", review_note="Otydlig HS-kod i texten")])
+    resultat = run_customs_audit(faktura)
+    skal = resultat["items"][0]["verdict_reasons"]
+    assert len(skal) >= 1
+    assert any("konfidens" in s.lower() for s in skal)

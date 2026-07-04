@@ -53,7 +53,30 @@ class CustomsInvoice(BaseModel):
 
 
 # ==========================================
-# 2. LANGGRAPH STATE (Applikationens minne)
+# 2. AI-VERIFIERING (svarsmall för verifier.py)
+# ==========================================
+
+class HSMatchBedomning(BaseModel):
+    """
+    AI:ns bedömning av EN varurad: matchar fakturans varubeskrivning
+    den officiella TARIC-beskrivningen för den angivna HS-koden?
+
+    Tänk på det som en tullexpert som får se två beskrivningar och
+    svarar "ja, det är samma sorts vara", "nej, det här hör hemma
+    någon annanstans" eller "för vagt för att avgöra".
+    """
+    item_index: int = Field(description="Varuradens index (0-baserat) från listan i prompten.")
+    matchar: str = Field(description="Bedömning: 'ja', 'nej' eller 'osäker'.")
+    motivering: str = Field(description="Kort motivering på svenska, en mening.")
+
+
+class HSMatchResultat(BaseModel):
+    """Samlade bedömningar för alla varurader — en per rad i prompten."""
+    bedomningar: List[HSMatchBedomning] = Field(description="En bedömning per varurad.")
+
+
+# ==========================================
+# 3. LANGGRAPH STATE (Applikationens minne)
 # ==========================================
 # Inspirerad av strukturen för InvoiceState
 

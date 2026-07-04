@@ -22,6 +22,7 @@ Viktigt om besparingsbeloppen:
 """
 
 from taric import load_taric_data, lookup_duty, verify_hs_description
+from verifier import verify_hs_matches
 
 
 def _avviker(forvantat: float, faktiskt: float) -> bool:
@@ -59,7 +60,12 @@ def run_customs_audit(final_output: dict) -> dict:
     items = final_output.get("items", [])
     currency = final_output.get("currency", "EUR")
 
-    for item in items:
+    # Signaler som bygger slutdomen per vara: röda skäl tvingar domen "röd",
+    # gula skäl ger "gul" (om inget rött finns), annars blir varan "grön".
+    roda_skal = {i: [] for i in range(len(items))}
+    gula_skal = {i: [] for i in range(len(items))}
+
+    for i, item in enumerate(items):
         description = item.get("description", "Okänd vara")
         hs_code = item.get("hs_code")
         country = item.get("country_of_origin")
@@ -79,6 +85,7 @@ def run_customs_audit(final_output: dict) -> dict:
                         f"{quantity} × {unit_price} = {forvantat_radpris:.2f}, "
                         f"men radpriset anger {total_price:.2f}"
                     )
+                    roda_skal[i].append("Räknefel på raden (antal × pris stämmer inte med radpriset)")
         except (ValueError, TypeError):
             pass
 
@@ -88,14 +95,17 @@ def run_customs_audit(final_output: dict) -> dict:
             flags.append(
                 f"🟡 Låg konfidens från AI-granskningen för {description}: {anledning}"
             )
+            gula_skal[i].append(f"Låg konfidens i AI:ns självkontroll: {anledning}")
 
         # 1c. Kontrollera att HS-kod och ursprungsland finns
         if not hs_code:
             flags.append(f"⚠️ Saknar HS-kod: {description}")
+            roda_skal[i].append("HS-kod saknas — varan kan inte granskas mot TARIC")
             continue
 
         if not country:
             flags.append(f"⚠️ Saknar ursprungsland: {description}")
+            roda_skal[i].append("Ursprungsland saknas — tullsatsen kan inte avgöras")
             continue
 
         # 2. Slå upp tullsats i TARIC
@@ -119,9 +129,13 @@ def run_customs_audit(final_output: dict) -> dict:
                 f"🔴 HS-kod {hs_code} hittades inte i TARIC för: {description} "
                 f"— kan vara felklassificerad"
             )
+            roda_skal[i].append("HS-koden finns inte i TARIC-nomenklaturen")
 
-        # 4. Flagga om frihandelsavtal finns men verkar inte utnyttjat
-        if has_fta and preferential_duty and "0" in str(preferential_duty):
+        # 4. Flagga om frihandelsavtal finns men verkar inte utnyttjat.
+        # EU-varor hoppas över: de har ingen importtull alls, så det finns
+        # inget frihandelsavtal att "utnyttja" — en flagga vore bara brus.
+        ar_eu_vara = "EU" in str(duty_result.get("note", ""))
+        if not ar_eu_vara and has_fta and preferential_duty and "0" in str(preferential_duty):
             flags.append(
                 f"💰 Möjlig besparing: {description} från {country} kan importeras "
                 f"tullfritt via frihandelsavtal (EPA/FTA) — verifiera att detta utnyttjats"
@@ -154,6 +168,7 @@ def run_customs_audit(final_output: dict) -> dict:
                 f"🔍 Manuell kontroll krävs för {description} ({hs_code}) "
                 f"— specifik tullsats (NAR) gäller, ej procentbaserad"
             )
+            gula_skal[i].append("Specifik tullsats (NAR) — kräver manuell kontroll")
 
     # 7. Aritmetikkontroll på fakturanivå: radsumma + frakt ska stämma
     # med fakturans totalbelopp (om det finns angivet).
@@ -171,8 +186,63 @@ def run_customs_audit(final_output: dict) -> dict:
     except (ValueError, TypeError):
         pass
 
+    # 8. AI-verifiering: matchar varubeskrivningarna sina TARIC-beskrivningar?
+    # EN Gemini-förfrågan för alla verifierbara rader (de med hittad beskrivning).
+    verifierbara = [
+        {
+            "index": i,
+            "hs_code": items[i].get("hs_code"),
+            "invoice_description": items[i].get("description", "Okänd vara"),
+            "taric_description": items[i].get("taric_description"),
+        }
+        for i in range(len(items))
+        if items[i].get("taric_description") and items[i].get("taric_description") != "Ej hittad"
+    ]
+
+    ai_bedomningar = verify_hs_matches(verifierbara) if verifierbara else {}
+
+    if ai_bedomningar is None:
+        # Kvot slut eller serverfel — degradera snyggt, krascha aldrig.
+        for rad in verifierbara:
+            gula_skal[rad["index"]].append(
+                "AI-verifieringen kunde inte köras (kvot/serverfel) — granska manuellt"
+            )
+    else:
+        for rad in verifierbara:
+            idx = rad["index"]
+            bedomning = ai_bedomningar.get(idx)
+            if bedomning is None:
+                gula_skal[idx].append("AI-verifieringen gav inget svar för denna rad")
+                continue
+            matchar, motivering = bedomning
+            beskrivning = items[idx].get("description", "Okänd vara")
+            if str(matchar).lower() == "nej":
+                roda_skal[idx].append(f"AI: beskrivningen matchar inte TARIC — {motivering}")
+                flags.append(
+                    f"🔴 Trolig felklassificering: {beskrivning} matchar inte "
+                    f"TARIC-beskrivningen '{items[idx].get('taric_description')}' — {motivering}"
+                )
+            elif str(matchar).lower() == "osäker":
+                gula_skal[idx].append(f"AI osäker på beskrivningsmatchningen — {motivering}")
+                flags.append(f"🟡 Osäker klassificering: {beskrivning} — {motivering}")
+
+    # 9. Slutdom per vara: röda skäl vinner över gula, annars grön.
+    verdict_summary = {"grön": 0, "gul": 0, "röd": 0}
+    for i, item in enumerate(items):
+        if roda_skal[i]:
+            item["verdict"] = "röd"
+            item["verdict_reasons"] = roda_skal[i] + gula_skal[i]
+        elif gula_skal[i]:
+            item["verdict"] = "gul"
+            item["verdict_reasons"] = gula_skal[i]
+        else:
+            item["verdict"] = "grön"
+            item["verdict_reasons"] = ["Alla kontroller överens"]
+        verdict_summary[item["verdict"]] += 1
+
     final_output["audit_flags"] = flags
     final_output["potential_savings"] = round(potential_savings, 2)
     final_output["currency"] = currency
+    final_output["verdict_summary"] = verdict_summary
 
     return final_output

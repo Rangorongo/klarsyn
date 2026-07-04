@@ -71,15 +71,32 @@ def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
         c.drawString(160, y, str(value))
         y -= 22
 
+    # Sammanfattning av slutdomarna (konfidensarkitekturen)
+    summary = final_data.get("verdict_summary")
+    if summary:
+        y -= 10
+        c.setFont("Arial-Bold", 11)
+        c.drawString(
+            50, y,
+            f"Slutdom: {summary.get('grön', 0)} gröna (lita på resultatet)  |  "
+            f"{summary.get('gul', 0)} gula (bör granskas)  |  "
+            f"{summary.get('röd', 0)} röda (måste granskas)"
+        )
+        y -= 22
+
     # Varor
     y -= 10
     c.setFont("Arial-Bold", 12)
     c.drawString(50, y, "Varor:")
     y -= 25
 
+    # Symbol per slutdom — visas framför varje varas namn
+    verdict_symbol = {"grön": "🟢", "gul": "🟡", "röd": "🔴"}
+
     for item in final_data.get("items", []):
         c.setFont("Arial-Bold", 9)
-        c.drawString(50, y, str(item.get("description", "")))
+        symbol = verdict_symbol.get(item.get("verdict"), "")
+        c.drawString(50, y, f"{symbol} {item.get('description', '')}".strip())
         y -= 16
 
         c.setFont("Arial", 9)
@@ -98,7 +115,13 @@ def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
             f"TARIC-beskrivning: {item.get('taric_description', 'Ej kontrollerad')}  |  "
             f"MFN-tull: {item.get('taric_mfn_duty', 'Okänd')}"
         )
-        y -= 20
+        y -= 14
+
+        # Domskälen — varför varan fick sin färg
+        for skal in item.get("verdict_reasons", []):
+            c.drawString(70, y, f"• {skal}"[:100])
+            y -= 12
+        y -= 8
 
     # Möjliga besparingar — alltid formulerat som övre gräns, aldrig som löfte.
     # Fakturan visar inte vilken tull som betalades (det gör importdeklarationen),

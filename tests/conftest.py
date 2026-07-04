@@ -52,10 +52,18 @@ def taric_data_syntetisk():
 @pytest.fixture
 def taric_data_patchad(monkeypatch, taric_data_syntetisk):
     """
-    Ersätter load_taric_data() i customs_logic med den syntetiska datan.
-    Används av test_customs_logic.py för att slippa riktiga Excel-filer.
+    Ersätter load_taric_data() i customs_logic med den syntetiska datan,
+    och AI-verifieringen (verify_hs_matches) med ett snällt standardsvar
+    som säger "ja" på allt — så inga tester gör riktiga API-anrop.
+
+    Tester som vill simulera "nej"/"osäker"/kvotfel överstyr
+    customs_logic.verify_hs_matches själva med monkeypatch.
     """
     monkeypatch.setattr(
         "customs_logic.load_taric_data",
         lambda: taric_data_syntetisk
+    )
+    monkeypatch.setattr(
+        "customs_logic.verify_hs_matches",
+        lambda rader: {r["index"]: ("ja", "Beskrivningarna stämmer överens.") for r in rader}
     )
