@@ -1,0 +1,8 @@
+langchain-google-genai
+langgraph
+pdfplumber
+pandas
+openpyxl
+reportlab
+python-dotenv
+pytest
