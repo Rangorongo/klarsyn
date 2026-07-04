@@ -14,52 +14,14 @@ Extraktionen sker nu i TVÅ steg istället för ett:
 Varför två anrop istället för ett?
     Vi har medvetet valt kvalitet över hastighet/kostnad: färre fakturor per
     dag på gratiskvoten är okej, eftersom kunden hellre ska vänta lite längre
-    och lita på resultatet. (Se docs/model_upgrade_plan.md för vilka starkare
-    modeller som ska bytas in när vi lanserar på riktigt.)
+    och lita på resultatet.
+
+Alla AI-anrop går via llm_klient.py, som automatiskt roterar till nästa
+gratis Gemini-modell om kvoten tar slut (429) och hanterar serverfel (503).
 """
 
-import os
-import time
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage
-from dotenv import load_dotenv
+from llm_klient import anropa_strukturerat
 from models import CustomsInvoice, CustomsGraphState
-
-load_dotenv()
-api_key = os.getenv("GOOGLE_API_KEY")
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite",
-    google_api_key=api_key,
-    max_retries=3
-)
-
-
-def _run_extraction(structured_llm, prompt: str) -> CustomsInvoice:
-    """
-    Skickar ett prompt-anrop till AI:n och hanterar de vanligaste felen.
-
-    Detta är samma retry-logik som tidigare fanns direkt i extract_invoice_data,
-    men flyttad till en egen funktion eftersom vi nu behöver köra den två gånger
-    (en gång för första extraktionen, en gång för självkontrollen) och vill
-    slippa skriva samma felhantering två gånger.
-
-    Args:
-        structured_llm: LLM-objektet som tvingar svaret till CustomsInvoice-formatet.
-        prompt (str): Den färdigformulerade texten som skickas till AI:n.
-
-    Returns:
-        CustomsInvoice: AI:ns strukturerade svar.
-    """
-    try:
-        return structured_llm.invoke([HumanMessage(content=prompt)])
-    except Exception as e:
-        if "503" in str(e) or "UNAVAILABLE" in str(e):
-            print("Servern överbelastad, väntar 30 sekunder...")
-            time.sleep(30)
-            return structured_llm.invoke([HumanMessage(content=prompt)])
-        else:
-            raise
 
 
 def _build_first_pass_prompt(raw_text: str) -> str:
@@ -142,17 +104,16 @@ def extract_invoice_data(state: CustomsGraphState) -> CustomsGraphState:
         CustomsGraphState: Uppdaterat state med extraherad och självgranskad faktурadata
     """
     raw_text = state["raw_pdf_text"]
-    structured_llm = llm.with_structured_output(CustomsInvoice)
 
     # Steg 1: Första extraktionen (som tidigare)
     print("Extraherar faktura (steg 1/2)...")
-    first_pass = _run_extraction(structured_llm, _build_first_pass_prompt(raw_text))
+    first_pass = anropa_strukturerat(_build_first_pass_prompt(raw_text), CustomsInvoice)
 
     # Steg 2: Självkontroll — AI:n granskar sitt eget första svar
     print("Granskar det egna svaret (steg 2/2, självkontroll)...")
-    second_pass = _run_extraction(
-        structured_llm,
-        _build_self_check_prompt(raw_text, first_pass)
+    second_pass = anropa_strukturerat(
+        _build_self_check_prompt(raw_text, first_pass),
+        CustomsInvoice,
     )
 
     return {

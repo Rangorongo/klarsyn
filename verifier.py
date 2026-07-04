@@ -11,19 +11,13 @@ Den bedömningen görs här.
 Kvotsnålt: EN (1) Gemini-förfrågan per faktura, oavsett antal varurader.
 Alla rader skickas i samma prompt och AI:n svarar per rad.
 
-Graciös degradering: om anropet misslyckas (429 kvot slut, 503 server)
-returneras None istället för att krascha — customs_logic.py ger då berörda
-varor domen "gul" med en notering, och pipelinen fortsätter.
-
-OBS: LLM:en skapas INUTI funktionen, inte vid import. Därför kan tester
-importera modulen utan API-nyckel, och API-nyckeln kan bytas i .env utan
-kodändringar.
+Anropet går via llm_klient.py som roterar mellan gratis-modellerna vid
+kvotfel. Graciös degradering: om ALLA modeller misslyckas returneras None
+istället för att krascha — customs_logic.py ger då berörda varor domen
+"gul" med en notering, och pipelinen fortsätter.
 """
 
-import os
-import time
-
-from dotenv import load_dotenv
+from llm_klient import anropa_strukturerat
 
 
 def _bygg_prompt(rader: list) -> str:
@@ -77,36 +71,16 @@ def verify_hs_matches(rader: list):
     if not rader:
         return {}
 
-    # Importeras här (inte högst upp) så att tester kan importera modulen
-    # utan att langchain/API-nyckel behövs.
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain_core.messages import HumanMessage
     from models import HSMatchResultat
 
-    load_dotenv()
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-lite",
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
-        max_retries=3,
-    )
-    structured_llm = llm.with_structured_output(HSMatchResultat)
     prompt = _bygg_prompt(rader)
-
     print("Verifierar HS-klassificeringar med AI (1 anrop)...")
     try:
-        resultat = structured_llm.invoke([HumanMessage(content=prompt)])
+        resultat = anropa_strukturerat(prompt, HSMatchResultat)
     except Exception as e:
-        if "503" in str(e) or "UNAVAILABLE" in str(e):
-            print("Servern överbelastad, väntar 30 sekunder...")
-            time.sleep(30)
-            try:
-                resultat = structured_llm.invoke([HumanMessage(content=prompt)])
-            except Exception:
-                print("AI-verifieringen misslyckades — fortsätter utan den.")
-                return None
-        else:
-            # T.ex. 429 (kvot slut): krascha inte, degradera snyggt.
-            print(f"AI-verifieringen kunde inte köras ({type(e).__name__}) — fortsätter utan den.")
-            return None
+        # Även med modellrotation kan allt misslyckas — krascha inte,
+        # degradera snyggt så pipelinen kan slutföra granskningen.
+        print(f"AI-verifieringen kunde inte köras ({type(e).__name__}) — fortsätter utan den.")
+        return None
 
     return {b.item_index: (b.matchar, b.motivering) for b in resultat.bedomningar}
