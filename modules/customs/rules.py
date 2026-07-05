@@ -24,6 +24,11 @@ Viktigt om besparingsbeloppen:
 from modules.customs.taric import load_taric_data, lookup_antidumping, lookup_duty, verify_hs_description
 from modules.customs.verifier import verify_hs_matches
 
+# Svensk standardmoms — importmoms beräknas på tullvärdet + tullen, så en
+# överbetald tull innebär även överbetald moms (normalt avdragsgill:
+# skadan är då likviditet, inte kostnad — det ska alltid framgå).
+MOMSSATS = 0.25
+
 
 def _avviker(forvantat: float, faktiskt: float) -> bool:
     """
@@ -56,7 +61,9 @@ def run_customs_audit(final_output: dict) -> dict:
     taric_data = load_taric_data()
 
     flags = []
+    findings = []          # strukturerade fynd för revisionsprotokollet
     potential_savings = 0.0
+    potential_vat = 0.0    # momskonsekvensen av tullbesparingarna
     items = final_output.get("items", [])
     currency = final_output.get("currency", "EUR")
 
@@ -91,6 +98,17 @@ def run_customs_audit(final_output: dict) -> dict:
                         f"men radpriset anger {total_price:.2f}"
                     )
                     roda_skal[i].append("Räknefel på raden (antal × pris stämmer inte med radpriset)")
+                    findings.append({
+                        "modul": "tull",
+                        "kategori": "RÄKNEFEL",
+                        "objekt": description,
+                        "beskrivning": "Antal × styckpris stämmer inte med radpriset.",
+                        "belopp": round(abs(forvantat_radpris - total_price), 2),
+                        "berakning": f"{quantity} × {unit_price} = {forvantat_radpris:.2f}, "
+                                     f"radpriset anger {total_price:.2f} {currency}",
+                        "referens": f"Faktura {final_output.get('invoice_number', '?')}",
+                        "atgard": "Stäm av beloppen med leverantören.",
+                    })
         except (ValueError, TypeError):
             pass
 
@@ -106,11 +124,31 @@ def run_customs_audit(final_output: dict) -> dict:
         if not hs_code:
             flags.append(f"⚠️ Saknar HS-kod: {description}")
             roda_skal[i].append("HS-kod saknas — varan kan inte granskas mot TARIC")
+            findings.append({
+                "modul": "tull",
+                "kategori": "SAKNAT FÄLT",
+                "objekt": description,
+                "beskrivning": "HS-kod saknas på fakturan — varan kan inte granskas mot TARIC.",
+                "belopp": None,
+                "berakning": None,
+                "referens": f"Faktura {final_output.get('invoice_number', '?')}",
+                "atgard": "Komplettera fakturaunderlaget från leverantören.",
+            })
             continue
 
         if not country:
             flags.append(f"⚠️ Saknar ursprungsland: {description}")
             roda_skal[i].append("Ursprungsland saknas — tullsatsen kan inte avgöras")
+            findings.append({
+                "modul": "tull",
+                "kategori": "SAKNAT FÄLT",
+                "objekt": description,
+                "beskrivning": "Ursprungsland saknas på fakturan — tullsatsen kan inte avgöras.",
+                "belopp": None,
+                "berakning": None,
+                "referens": f"Faktura {final_output.get('invoice_number', '?')}",
+                "atgard": "Komplettera fakturaunderlaget från leverantören.",
+            })
             continue
 
         # 2. Slå upp tullsats i TARIC
@@ -139,6 +177,18 @@ def run_customs_audit(final_output: dict) -> dict:
                 f"Antidumpningstull kan gälla ({add_duty}) — kontrollera deklarationen"
             )
             add_varor.append(description)
+            findings.append({
+                "modul": "tull",
+                "kategori": "ANTIDUMPNING",
+                "objekt": description,
+                "beskrivning": f"Varan från {country} omfattas av antidumpningstull — "
+                               f"missad ADD kan ge tulltillägg i efterhand.",
+                "belopp": None,
+                "berakning": f"Antidumpningssats enligt TARIC: {add_duty}",
+                "referens": f"HS-kod {hs_code}, ursprung {country}, measure 551–554",
+                "atgard": "Kontrollera omgående i importdeklarationen att "
+                          "antidumpningstullen deklarerats.",
+            })
 
         # 3. Flagga om HS-koden inte hittas i TARIC
         if taric_description == "Ej hittad":
@@ -147,6 +197,17 @@ def run_customs_audit(final_output: dict) -> dict:
                 f"— kan vara felklassificerad"
             )
             roda_skal[i].append("HS-koden finns inte i TARIC-nomenklaturen")
+            findings.append({
+                "modul": "tull",
+                "kategori": "FELKLASSIFICERING",
+                "objekt": description,
+                "beskrivning": f"HS-koden {hs_code} finns inte i TARIC-nomenklaturen — "
+                               f"varan är troligen felklassificerad.",
+                "belopp": None,
+                "berakning": None,
+                "referens": f"HS-kod {hs_code} (ej i TARIC)",
+                "atgard": "Fastställ korrekt HS-kod och räkna om tullen.",
+            })
 
         # 4. Flagga om frihandelsavtal finns men verkar inte utnyttjat.
         # EU-varor hoppas över: de har ingen importtull alls, så det finns
@@ -177,6 +238,43 @@ def run_customs_audit(final_output: dict) -> dict:
                         f"— gäller endast om MFN-tull betalades vid importen, "
                         f"kontrollera importdeklarationen"
                     )
+                    findings.append({
+                        "modul": "tull",
+                        "kategori": "PROCENTSATS",
+                        "objekt": description,
+                        "beskrivning": f"Fel tullsats kan ha använts: MFN {mfn_duty} betalades "
+                                       f"trots att frihandelsavtal ger {preferential_duty}.",
+                        "belopp": round(duty_paid, 2),
+                        "berakning": f"Tullvärde {customs_value:.2f} {currency} × MFN {mfn_duty} "
+                                     f"= {duty_paid:.2f} {currency}",
+                        "referens": f"HS-kod {hs_code}, ursprung {country}, "
+                                    f"preferenstull {preferential_duty}",
+                        "atgard": "Verifiera mot importdeklarationen; begär omprövning "
+                                  "hos Tullverket om MFN-tull betalades.",
+                    })
+
+                    # Momskonsekvensen: importmoms beräknas på tullvärdet + tullen,
+                    # så överbetald tull ger även överbetald moms.
+                    moms_belopp = duty_paid * MOMSSATS
+                    potential_vat += moms_belopp
+                    flags.append(
+                        f"🧾 Momskonsekvens för {description}: ytterligare "
+                        f"{moms_belopp:.2f} {currency} kan ha överbetalats i importmoms "
+                        f"— normalt avdragsgill, påverkar främst likviditet"
+                    )
+                    findings.append({
+                        "modul": "moms",
+                        "kategori": "MOMS",
+                        "objekt": description,
+                        "beskrivning": "Importmoms beräknad på den för höga tullen — "
+                                       "normalt avdragsgill, så skadan är främst likviditet.",
+                        "belopp": round(moms_belopp, 2),
+                        "berakning": f"Tullbesparing {duty_paid:.2f} {currency} × "
+                                     f"moms {MOMSSATS:.0%} = {moms_belopp:.2f} {currency}",
+                        "referens": "Svensk importmoms 25 % (standardsats)",
+                        "atgard": "Justeras normalt via momsdeklarationen när tullen "
+                                  "omprövats — stäm av med er redovisning.",
+                    })
         except (ValueError, TypeError):
             pass
 
@@ -202,6 +300,17 @@ def run_customs_audit(final_output: dict) -> dict:
                     f"{forvantad_total:.2f}, men fakturan anger {float(total_invoice):.2f}"
                 )
                 fakturatotal_fel = True
+                findings.append({
+                    "modul": "tull",
+                    "kategori": "RÄKNEFEL",
+                    "objekt": f"Faktura {final_output.get('invoice_number', '?')}",
+                    "beskrivning": "Fakturans totalbelopp stämmer inte med radsumman plus frakt.",
+                    "belopp": round(abs(forvantad_total - float(total_invoice)), 2),
+                    "berakning": f"Radsumma + frakt = {forvantad_total:.2f}, fakturan anger "
+                                 f"{float(total_invoice):.2f} {currency}",
+                    "referens": f"Faktura {final_output.get('invoice_number', '?')}",
+                    "atgard": "Stäm av totalbeloppet med leverantören innan underlaget används.",
+                })
     except (ValueError, TypeError):
         pass
 
@@ -241,6 +350,19 @@ def run_customs_audit(final_output: dict) -> dict:
                     f"🔴 Trolig felklassificering: {beskrivning} matchar inte "
                     f"TARIC-beskrivningen '{items[idx].get('taric_description')}' — {motivering}"
                 )
+                findings.append({
+                    "modul": "tull",
+                    "kategori": "FELKLASSIFICERING",
+                    "objekt": beskrivning,
+                    "beskrivning": f"Varubeskrivningen matchar inte TARIC-beskrivningen "
+                                   f"'{items[idx].get('taric_description')}'. {motivering}",
+                    "belopp": None,
+                    "berakning": None,
+                    "referens": f"HS-kod {items[idx].get('hs_code')}, TARIC-beskrivning "
+                                f"'{items[idx].get('taric_description')}'",
+                    "atgard": "Låt tullombud fastställa korrekt HS-kod; omprövning kan "
+                              "begäras hos Tullverket upp till 3 år bakåt.",
+                })
             elif str(matchar).lower() == "osäker":
                 gula_skal[idx].append(f"AI osäker på beskrivningsmatchningen — {motivering}")
                 flags.append(f"🟡 Osäker klassificering: {beskrivning} — {motivering}")
@@ -328,7 +450,9 @@ def run_customs_audit(final_output: dict) -> dict:
     action_items.sort(key=lambda a: 0 if a["prioritet"] == "hög" else 1)
 
     final_output["audit_flags"] = flags
+    final_output["findings"] = findings
     final_output["potential_savings"] = round(potential_savings, 2)
+    final_output["potential_vat"] = round(potential_vat, 2)
     final_output["currency"] = currency
     final_output["verdict_summary"] = verdict_summary
     final_output["action_items"] = action_items

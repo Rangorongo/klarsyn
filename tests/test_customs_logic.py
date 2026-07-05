@@ -241,6 +241,72 @@ def test_eu_vara_far_ingen_besparingsflagga(taric_data_patchad):
     assert not any("💶" in f for f in resultat["audit_flags"])
 
 
+# --- Momskonsekvens (🧾) ---
+
+def test_besparing_ger_momskonsekvens(taric_data_patchad):
+    """
+    Tullbesparing 200 × 3,3 % = 6,60 → momskonsekvens 6,60 × 25 % = 1,65.
+    Flaggan ska vara ärlig: momsen är normalt avdragsgill.
+    """
+    faktura = _bygg_faktura([_vara(country="JP", total_price=200.0)])
+    resultat = run_customs_audit(faktura)
+    assert resultat["potential_vat"] == pytest.approx(1.65)
+    momsflaggor = [f for f in resultat["audit_flags"] if "🧾" in f]
+    assert len(momsflaggor) == 1
+    assert "avdragsgill" in momsflaggor[0]
+
+
+def test_ingen_besparing_ger_ingen_momskonsekvens(taric_data_patchad):
+    """Utan tullbesparing finns ingen momskonsekvens att flagga."""
+    faktura = _bygg_faktura([_vara()])  # CN utan FTA
+    resultat = run_customs_audit(faktura)
+    assert resultat["potential_vat"] == 0.0
+    assert not any("🧾" in f for f in resultat["audit_flags"])
+
+
+# --- Strukturerade findings (för revisionsprotokollet) ---
+
+def test_felklassificering_ger_finding(taric_data_patchad, monkeypatch):
+    """AI-bedömning 'nej' ska ge ett FELKLASSIFICERING-fynd med referens."""
+    monkeypatch.setattr(
+        "modules.customs.rules.verify_hs_matches",
+        lambda rader: {r["index"]: ("nej", "Fel varutyp.") for r in rader}
+    )
+    faktura = _bygg_faktura([_vara(description="Handskar")])
+    resultat = run_customs_audit(faktura)
+    fynd = [f for f in resultat["findings"] if f["kategori"] == "FELKLASSIFICERING"]
+    assert len(fynd) == 1
+    assert fynd[0]["modul"] == "tull"
+    assert "8534" in fynd[0]["referens"]
+
+
+def test_procentsats_finding_har_belopp_och_berakning(taric_data_patchad):
+    """💶-fyndet ska ha kategori PROCENTSATS med belopp och synlig beräkning."""
+    faktura = _bygg_faktura([_vara(country="JP", total_price=200.0)])
+    resultat = run_customs_audit(faktura)
+    fynd = [f for f in resultat["findings"] if f["kategori"] == "PROCENTSATS"]
+    assert len(fynd) == 1
+    assert fynd[0]["belopp"] == pytest.approx(6.60)
+    assert "3.300" in fynd[0]["berakning"]
+    moms_fynd = [f for f in resultat["findings"] if f["kategori"] == "MOMS"]
+    assert len(moms_fynd) == 1
+    assert moms_fynd[0]["belopp"] == pytest.approx(1.65)
+
+
+def test_saknat_falt_ger_finding(taric_data_patchad):
+    """Saknad HS-kod ska ge ett SAKNAT FÄLT-fynd."""
+    faktura = _bygg_faktura([_vara(hs_code=None)])
+    resultat = run_customs_audit(faktura)
+    assert any(f["kategori"] == "SAKNAT FÄLT" for f in resultat["findings"])
+
+
+def test_felfri_faktura_ger_inga_findings(taric_data_patchad):
+    """En helt grön faktura ska inte generera några fynd."""
+    faktura = _bygg_faktura([_vara()])
+    resultat = run_customs_audit(faktura)
+    assert resultat["findings"] == []
+
+
 # --- Konfidensarkitekturen: slutdom per vara (grön/gul/röd) ---
 
 def test_allt_stammer_ger_gron_dom(taric_data_patchad):
