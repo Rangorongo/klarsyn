@@ -159,20 +159,26 @@ def run_pipeline(invoice_path: str, raw_text: str = None) -> dict:
     return audited_data
 
 
-def run_freight_pipeline(invoice_path: str, raw_text: str = None) -> dict:
+def run_freight_pipeline(invoice_path: str, raw_text: str = None, kund: str = "standard") -> dict:
     """
     Orkestrerar fraktrevisionsflödet för en fraktfaktura.
 
     Samma tvåpassmönster som tullflödet men med fraktmodulens schema
     och prompter. Kvotkostnad: 2 Gemini-anrop (ingen TARIC-verifiering).
 
+    Dubblettkontroll över tid: fakturans tracking-nummer jämförs mot
+    kundens historik (core/historik.py) INNAN fakturan registreras.
+
     Args:
         invoice_path (str): Sökvägen till fraktfaktura-PDF:en.
         raw_text (str): Redan inläst PDF-text (om None läses den från filen).
+        kund (str): Kund-id för historiken (t.ex. mappnamn eller e-postadress).
 
     Returns:
         dict: Det granskade resultatet, eller None om extraktionen misslyckades.
     """
+    from core.historik import kontrollera_tracking_historik, registrera_sandningar
+
     if raw_text is None:
         raw_text = load_pdf_text(invoice_path)
     clean_text = mask_pii(raw_text)
@@ -187,7 +193,19 @@ def run_freight_pipeline(invoice_path: str, raw_text: str = None) -> dict:
         print("Kunde inte extrahera data.")
         return None
 
-    audited_data = run_freight_audit(resultat.model_dump())
+    rådata = resultat.model_dump()
+
+    # Historikkontroll FÖRE registrering (annars flaggar fakturan sig själv)
+    tracking_nummer = [s.get("tracking_number") for s in rådata.get("shipments", [])]
+    traffar = kontrollera_tracking_historik(kund, tracking_nummer)
+
+    audited_data = run_freight_audit(rådata, historik_traffar=traffar)
+
+    registrera_sandningar(
+        kund,
+        audited_data.get("invoice_number") or os.path.basename(invoice_path),
+        audited_data.get("shipments", []),
+    )
 
     mapp = os.path.dirname(invoice_path)
     filnamn = os.path.basename(invoice_path)
@@ -196,7 +214,7 @@ def run_freight_pipeline(invoice_path: str, raw_text: str = None) -> dict:
     return audited_data
 
 
-def granska_dokument(invoice_path: str, modul: str = None) -> dict:
+def granska_dokument(invoice_path: str, modul: str = None, kund: str = "standard") -> dict:
     """
     Granskar en PDF: avgör dokumenttyp och kör rätt moduls pipeline.
 
@@ -204,6 +222,7 @@ def granska_dokument(invoice_path: str, modul: str = None) -> dict:
         invoice_path (str): Sökvägen till PDF:en.
         modul (str): "tull" eller "frakt" för att tvinga modulvalet,
             eller None för automatisk detektering.
+        kund (str): Kund-id för fraktdubbletthistoriken.
 
     Returns:
         dict: Granskningsresultatet från modulens pipeline.
@@ -213,11 +232,11 @@ def granska_dokument(invoice_path: str, modul: str = None) -> dict:
     print(f"Dokumenttyp: {vald_modul}")
 
     if vald_modul == "frakt":
-        return run_freight_pipeline(invoice_path, raw_text)
+        return run_freight_pipeline(invoice_path, raw_text, kund=kund)
     return run_pipeline(invoice_path, raw_text)
 
 
-def kor_batch(fakturor: list, modul: str = None) -> dict:
+def kor_batch(fakturor: list, modul: str = None, kund: str = "standard") -> dict:
     """
     Kör pipelinen på varje faktura och håller reda på VILKA som lyckades
     respektive misslyckades — så att användaren vet exakt vilka filer
@@ -237,7 +256,7 @@ def kor_batch(fakturor: list, modul: str = None) -> dict:
     for faktura in fakturor:
         print(f"\n=== {faktura} ===")
         try:
-            resultat = granska_dokument(faktura, modul)
+            resultat = granska_dokument(faktura, modul, kund)
             if resultat is not None:
                 lyckade.append(faktura)
                 granskningar.append(resultat)
@@ -268,13 +287,18 @@ def main():
         default=None,
         help="Tvinga dokumenttyp (annars detekteras den automatiskt per PDF)",
     )
+    parser.add_argument(
+        "--kund",
+        default="standard",
+        help="Kund-id för fraktdubbletthistoriken (t.ex. företagsnamn)",
+    )
     args = parser.parse_args()
 
     fakturor = hitta_fakturor(args.sokvag)
     print(f"Granskar {len(fakturor)} faktura/fakturor...")
 
     nollstall_anropslogg()
-    resultat = kor_batch(fakturor, args.modul)
+    resultat = kor_batch(fakturor, args.modul, args.kund)
 
     mapp = args.sokvag if os.path.isdir(args.sokvag) else os.path.dirname(fakturor[0])
 

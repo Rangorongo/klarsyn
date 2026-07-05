@@ -31,13 +31,16 @@ def _namn(shipment: dict, index: int) -> str:
     return shipment.get("tracking_number") or f"sändning {index + 1}"
 
 
-def run_freight_audit(final_output: dict) -> dict:
+def run_freight_audit(final_output: dict, historik_traffar: dict = None) -> dict:
     """
     Utför en automatiserad fraktrevision av extraherad fakturadata.
 
     Args:
         final_output (dict): Extraherad fraktfakturadata enligt
             FreightInvoice-schemat.
+        historik_traffar (dict): {tracking_number: tidigare_faktura} från
+            kundens historik (core/historik.py) — sändningar som redan
+            debiterats på TIDIGARE fakturor.
 
     Returns:
         dict: Samma dictionary utökad med audit_flags, findings,
@@ -56,6 +59,38 @@ def run_freight_audit(final_output: dict) -> dict:
 
     roda_skal = {i: [] for i in range(len(shipments))}
     gula_skal = {i: [] for i in range(len(shipments))}
+    historik_traffar = historik_traffar or {}
+
+    # 0. Dubbeldebitering ÖVER TID: tracking-nummer som redan debiterats
+    # på en tidigare faktura enligt kundens historik.
+    for i, s in enumerate(shipments):
+        tracking = s.get("tracking_number")
+        if tracking and tracking in historik_traffar:
+            tidigare = historik_traffar[tracking]
+            belopp = float(s.get("total_charge") or 0)
+            flags.append(
+                f"🔴 Dubbeldebitering över tid: {tracking} debiterades redan på "
+                f"faktura {tidigare} — {belopp:.2f} {currency} kan vara dubbelt debiterat"
+            )
+            roda_skal[i].append(f"Tracking-nummer {tracking} redan debiterat på faktura {tidigare}")
+            potential_savings += belopp
+            findings.append({
+                "modul": "frakt",
+                "kategori": "DUBBELDEBITERING",
+                "objekt": _namn(s, i),
+                "beskrivning": f"Tracking-nummer {tracking} är redan debiterat på den "
+                               f"tidigare fakturan {tidigare} enligt kundens historik.",
+                "belopp": belopp,
+                "berakning": f"Dubblettens hela belopp: {belopp:.2f} {currency}",
+                "referens": f"Tracking-nummer {tracking}, tidigare faktura {tidigare}",
+                "atgard": "Begär kreditering av dubbeldebiteringen från transportören "
+                          "med båda fakturorna som underlag.",
+            })
+            action_items.append({
+                "prioritet": "hög",
+                "atgard": f"Begär kreditering av {belopp:.2f} {currency} — {tracking} "
+                          f"debiterades även på faktura {tidigare}."
+            })
 
     # 1. Dubbeldebitering: samma tracking-nummer mer än en gång i fakturan.
     sedda_tracking = {}

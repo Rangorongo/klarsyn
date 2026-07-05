@@ -72,7 +72,7 @@ def test_kor_batch_listar_vilka_som_misslyckades(monkeypatch):
     """
     import main as main_modul
 
-    def fejk_granskning(faktura, modul=None):
+    def fejk_granskning(faktura, modul=None, kund="standard"):
         if "trasig" in faktura:
             raise RuntimeError("simulerat kvotfel")
         if "tom" in faktura:
@@ -95,7 +95,7 @@ def test_kor_batch_fortsatter_efter_fel(monkeypatch):
 
     anropade = []
 
-    def fejk_granskning(faktura, modul=None):
+    def fejk_granskning(faktura, modul=None, kund="standard"):
         anropade.append(faktura)
         if faktura == "forsta.pdf":
             raise RuntimeError("simulerat fel")
@@ -126,7 +126,7 @@ def test_granska_dokument_routar_frakt_automatiskt(monkeypatch):
 
     monkeypatch.setattr(main_modul, "load_pdf_text", lambda p: FRAKT_TEXT)
     monkeypatch.setattr(main_modul, "run_freight_pipeline",
-                        lambda p, raw_text=None: {"typ": "frakt"})
+                        lambda p, raw_text=None, kund="standard": {"typ": "frakt"})
     monkeypatch.setattr(main_modul, "run_pipeline",
                         lambda p, raw_text=None: {"typ": "tull"})
 
@@ -139,7 +139,7 @@ def test_granska_dokument_routar_tull_automatiskt(monkeypatch):
 
     monkeypatch.setattr(main_modul, "load_pdf_text", lambda p: TULL_TEXT)
     monkeypatch.setattr(main_modul, "run_freight_pipeline",
-                        lambda p, raw_text=None: {"typ": "frakt"})
+                        lambda p, raw_text=None, kund="standard": {"typ": "frakt"})
     monkeypatch.setattr(main_modul, "run_pipeline",
                         lambda p, raw_text=None: {"typ": "tull"})
 
@@ -152,7 +152,7 @@ def test_modul_flaggan_overstyar_detekteringen(monkeypatch):
 
     monkeypatch.setattr(main_modul, "load_pdf_text", lambda p: FRAKT_TEXT)
     monkeypatch.setattr(main_modul, "run_freight_pipeline",
-                        lambda p, raw_text=None: {"typ": "frakt"})
+                        lambda p, raw_text=None, kund="standard": {"typ": "frakt"})
     monkeypatch.setattr(main_modul, "run_pipeline",
                         lambda p, raw_text=None: {"typ": "tull"})
 
