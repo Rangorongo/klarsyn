@@ -22,6 +22,7 @@ LLM:en skapas inuti anropet — modulen kan importeras utan API-nyckel
 
 import os
 import time
+from datetime import datetime
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
@@ -33,6 +34,28 @@ MODELLER = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
 ]
+
+# Anropslogg: varje AI-anrop registreras med modell och utfall.
+# Underlag för kostnadskoll och granskningsmetadata i protokollet.
+_ANROPSLOGG = []
+
+
+def hamta_anropslogg() -> list:
+    """Returnerar en kopia av anropsloggen för aktuell körning."""
+    return list(_ANROPSLOGG)
+
+
+def nollstall_anropslogg():
+    """Nollställer loggen — anropas i början av varje körning."""
+    _ANROPSLOGG.clear()
+
+
+def _logga(modell: str, status: str):
+    _ANROPSLOGG.append({
+        "modell": modell,
+        "status": status,
+        "tid": datetime.now().isoformat(timespec="seconds"),
+    })
 
 
 def _skapa_llm(modell: str):
@@ -77,21 +100,28 @@ def anropa_strukturerat(prompt: str, schema):
     for modell in MODELLER:
         structured_llm = _skapa_llm(modell).with_structured_output(schema)
         try:
-            return structured_llm.invoke([HumanMessage(content=prompt)])
+            svar = structured_llm.invoke([HumanMessage(content=prompt)])
+            _logga(modell, "lyckat")
+            return svar
         except Exception as e:
             if _ar_kvotfel(e):
                 print(f"Kvot slut för {modell} — provar nästa modell...")
+                _logga(modell, "kvotfel")
                 senaste_fel = e
                 continue
             if _ar_serverfel(e):
                 print(f"Servern överbelastad ({modell}), väntar 30 sekunder...")
                 time.sleep(30)
                 try:
-                    return structured_llm.invoke([HumanMessage(content=prompt)])
+                    svar = structured_llm.invoke([HumanMessage(content=prompt)])
+                    _logga(modell, "lyckat")
+                    return svar
                 except Exception as e2:
                     print(f"{modell} svarar fortfarande inte — provar nästa modell...")
+                    _logga(modell, "serverfel")
                     senaste_fel = e2
                     continue
+            _logga(modell, "fel")
             raise
 
     raise RuntimeError(

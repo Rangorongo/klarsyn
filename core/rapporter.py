@@ -310,7 +310,7 @@ def save_batch_summary(granskningar: list, misslyckade: list, filename: str):
 # REVISIONSPROTOKOLLET
 # ==========================================
 
-def save_revision_protocol(granskningar: list, filename: str):
+def save_revision_protocol(granskningar: list, filename: str, metadata: dict = None):
     """
     Skriver det formella revisionsprotokollet — det kompletta underlaget
     för en ändringsansökan hos Tullverket eller ett krav mot transportör.
@@ -326,6 +326,9 @@ def save_revision_protocol(granskningar: list, filename: str):
         granskningar (list): Granskningsresultat (dictar med findings) från
             en eller flera fakturor, tull- och/eller fraktmodulen blandat.
         filename (str): Var PDF:en ska sparas.
+        metadata (dict): Granskningsmetadata från core/metadata.py —
+            spårbarhet (tid, version, AI-anrop, TARIC-ålder, OCR) och
+            eventuell SEK-kurs (nycklar sek_kurs, kursdatum, kursvaluta).
     """
     _registrera_fonter()
 
@@ -393,6 +396,16 @@ def save_revision_protocol(granskningar: list, filename: str):
         stil_normal,
     ))
 
+    # SEK-omräkning — Tullverket räknar i svenska kronor
+    if metadata and metadata.get("sek_kurs") and valuta != "SEK":
+        kurs = float(metadata["sek_kurs"])
+        totalt = sum(belopp_per_modul.values())
+        story.append(Paragraph(
+            f"Totalt i svenska kronor: <b>≈ {totalt * kurs:,.2f} SEK</b> "
+            f"(kurs 1 {valuta} = {kurs} SEK, ECB {metadata.get('kursdatum', '?')}).",
+            stil_normal,
+        ))
+
     # --- 3. Numrerade fynd ---
     if alla_fynd:
         story.append(Paragraph("Fynd", stil_h2))
@@ -427,6 +440,30 @@ def save_revision_protocol(granskningar: list, filename: str):
         story.append(Paragraph(
             "Inga avvikelser hittades i granskningen.", stil_normal
         ))
+
+    # --- Granskningsmetod och spårbarhet ---
+    if metadata:
+        story.append(Paragraph("Granskningsmetod och spårbarhet", stil_h2))
+        rader_meta = [
+            f"Tidpunkt: {metadata.get('tidsstampel', '?')} · "
+            f"Systemversion: Tullsyn {metadata.get('systemversion', '?')}",
+            f"AI-anrop: {metadata.get('ai_anrop_totalt', 0)} st "
+            f"({', '.join(f'{m}: {n}' for m, n in metadata.get('ai_anrop_per_modell', {}).items()) or 'inga'})",
+        ]
+        if metadata.get("taric_alder_dagar") is not None:
+            rader_meta.append(f"TARIC-datans ålder: {metadata['taric_alder_dagar']} dagar")
+        if metadata.get("ocr_anvand"):
+            rader_meta.append(
+                "OBS: minst ett dokument lästes med OCR (inskannat underlag) — "
+                "extraherade värden bör kontrolleras extra noga mot originalet."
+            )
+        for rad in rader_meta:
+            story.append(Paragraph(_pdf_text(rad), stil_normal))
+        if metadata.get("taric_varning"):
+            story.append(Paragraph(
+                f'<font color="#c0392b">{_pdf_text(metadata["taric_varning"])}</font>',
+                stil_normal,
+            ))
 
     # --- 4. Bilageförteckning ---
     story.append(Paragraph("Bilagor", stil_h2))

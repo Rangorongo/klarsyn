@@ -83,3 +83,42 @@ def test_okant_fel_propageras_direkt(monkeypatch):
     })
     with pytest.raises(ValueError, match="trasig prompt"):
         llm_klient.anropa_strukturerat("testprompt", schema=None)
+
+
+# --- Anropsloggen (kostnads- och spårbarhetsunderlag) ---
+
+def test_anropslogg_registrerar_lyckat_anrop(monkeypatch):
+    """Varje lyckat anrop ska loggas med modellnamn — underlag för kostnadskoll."""
+    llm_klient.nollstall_anropslogg()
+    _fejka_modeller(monkeypatch, {llm_klient.MODELLER[0]: ["svar"]})
+    llm_klient.anropa_strukturerat("testprompt", schema=None)
+
+    logg = llm_klient.hamta_anropslogg()
+    assert len(logg) == 1
+    assert logg[0]["modell"] == llm_klient.MODELLER[0]
+    assert logg[0]["status"] == "lyckat"
+
+
+def test_anropslogg_registrerar_kvotfel_och_rotation(monkeypatch):
+    """Kvotfel + lyckad rotation ska ge två loggposter — så rotationen syns i metadatan."""
+    llm_klient.nollstall_anropslogg()
+    _fejka_modeller(monkeypatch, {
+        llm_klient.MODELLER[0]: [Exception("429 RESOURCE_EXHAUSTED")],
+        llm_klient.MODELLER[1]: ["svar"],
+    })
+    llm_klient.anropa_strukturerat("testprompt", schema=None)
+
+    logg = llm_klient.hamta_anropslogg()
+    assert [(p["modell"], p["status"]) for p in logg] == [
+        (llm_klient.MODELLER[0], "kvotfel"),
+        (llm_klient.MODELLER[1], "lyckat"),
+    ]
+
+
+def test_nollstall_anropslogg(monkeypatch):
+    """Loggen ska kunna nollställas mellan körningar."""
+    llm_klient.nollstall_anropslogg()
+    _fejka_modeller(monkeypatch, {llm_klient.MODELLER[0]: ["svar"]})
+    llm_klient.anropa_strukturerat("testprompt", schema=None)
+    llm_klient.nollstall_anropslogg()
+    assert llm_klient.hamta_anropslogg() == []

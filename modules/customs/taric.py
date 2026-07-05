@@ -75,6 +75,47 @@ def load_taric_data() -> dict:
     return _TARIC_CACHE
 
 
+def kontrollera_taric_alder(max_dagar: int = 35, taric_dir: str = None):
+    """
+    Kontrollerar hur gamla TARIC-filerna är.
+
+    Tulltaxan uppdateras månadsvis — en granskning mot inaktuell data är
+    ett tyst korrekthetshål. Varningen visas i konsolen och tas med i
+    revisionsprotokollets metadata.
+
+    Returns:
+        str | None: varningstext om äldsta filen är äldre än max_dagar
+        (eller om data saknas), annars None.
+    """
+    import glob as _glob
+    import time as _time
+
+    mapp = taric_dir or TARIC_DIR
+    filer = _glob.glob(os.path.join(mapp, "*.xlsx"))
+    if not filer:
+        return f"TARIC-data saknas i {mapp} — ladda ner filerna från CIRCABC."
+
+    aldsta = min(os.path.getmtime(f) for f in filer)
+    dagar = int((_time.time() - aldsta) / 86400)
+    if dagar > max_dagar:
+        return (f"TARIC-datan är {dagar} dagar gammal — tulltaxan uppdateras "
+                f"månadsvis, ladda ner nya filer från CIRCABC.")
+    return None
+
+
+def hamta_taric_alder_dagar(taric_dir: str = None):
+    """Returnerar äldsta TARIC-filens ålder i dagar, eller None om data saknas."""
+    import glob as _glob
+    import time as _time
+
+    mapp = taric_dir or TARIC_DIR
+    filer = _glob.glob(os.path.join(mapp, "*.xlsx"))
+    if not filer:
+        return None
+    aldsta = min(os.path.getmtime(f) for f in filer)
+    return int((_time.time() - aldsta) / 86400)
+
+
 def _giltiga_rader(df: pd.DataFrame) -> pd.DataFrame:
     """
     Filtrerar bort tullrader som inte gäller idag.

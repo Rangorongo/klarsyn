@@ -30,7 +30,10 @@ from langgraph.graph import StateGraph, END
 import pdfplumber
 from core.dokumenttyp import identifiera_dokumenttyp
 from core.extraktion import extrahera_tva_pass
+from core.llm_klient import hamta_anropslogg, nollstall_anropslogg
+from core.metadata import bygg_granskningsmetadata
 from core.pii import mask_pii
+from core.valuta import hamta_sek_kurs
 from core.rapporter import (
     save_batch_summary,
     save_revision_protocol,
@@ -270,6 +273,7 @@ def main():
     fakturor = hitta_fakturor(args.sokvag)
     print(f"Granskar {len(fakturor)} faktura/fakturor...")
 
+    nollstall_anropslogg()
     resultat = kor_batch(fakturor, args.modul)
 
     mapp = args.sokvag if os.path.isdir(args.sokvag) else os.path.dirname(fakturor[0])
@@ -283,12 +287,25 @@ def main():
         )
 
     # Revisionsprotokollet — det formella underlaget för ändringsansökan —
-    # skrivs efter varje körning som gav resultat.
+    # skrivs efter varje körning som gav resultat, med full spårbarhet.
     if resultat["granskningar"]:
+        metadata = bygg_granskningsmetadata()
+
+        # SEK-omräkning för protokollets sammanfattning (Tullverket räknar i SEK)
+        valuta = resultat["granskningar"][0].get("currency", "EUR")
+        kurs, kursdatum = hamta_sek_kurs(valuta)
+        if kurs:
+            metadata["sek_kurs"] = kurs
+            metadata["kursdatum"] = kursdatum
+
         save_revision_protocol(
             resultat["granskningar"],
             os.path.join(mapp, f"revisionsprotokoll_{date.today().isoformat()}.pdf"),
+            metadata=metadata,
         )
+
+        anrop = hamta_anropslogg()
+        print(f"AI-anrop denna körning: {len(anrop)} st.")
 
     print(f"\nKlart: {len(resultat['lyckade'])} lyckades, "
           f"{len(resultat['misslyckade'])} misslyckades.")
