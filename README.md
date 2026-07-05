@@ -1,8 +1,12 @@
 # Tullsyn
 
-Automatiserar granskning av tullfakturor mot EU:s officiella TARIC-data.
-Hittar felaktiga HS-koder, outnyttjade frihandelsavtal och beräknar potentiella
-tullar som kan återkrävas.
+Modulärt revisionssystem för importföretag. Granskar **tullfakturor** mot
+EU:s officiella TARIC-data (felklassificeringar, outnyttjade frihandelsavtal,
+antidumpningsrisk, momskonsekvens) och **fraktfakturor** mot avtalslösa
+kontroller (dubbeldebitering, volymvikt, summafel, orimliga tillägg).
+Varje körning ger beslutsrapporter per faktura och ett formellt
+**revisionsprotokoll** — komplett underlag för ändringsansökan hos
+Tullverket eller krav mot transportören.
 
 ## Installation
 
@@ -23,14 +27,21 @@ Hämta din API-nyckel gratis på: https://aistudio.google.com/
 ## Kör pipelinen
 
 ```
-python main.py                    # granskar sample_invoice.pdf (test)
-python main.py min_faktura.pdf    # granskar en specifik faktura
-python main.py fakturamapp/       # granskar ALLA PDF:er i mappen
+python main.py                          # granskar sample_invoice.pdf (test)
+python main.py min_faktura.pdf          # dokumenttyp detekteras automatiskt
+python main.py fakturamapp/             # granskar ALLA PDF:er i mappen
+python main.py faktura.pdf --modul frakt  # tvinga tull- eller fraktmodulen
 ```
 
-Rapporterna (`audit_<fakturanamn>.csv` och `.pdf`) sparas bredvid
-respektive faktura. Vid batchkörning fortsätter pipelinen med nästa
-faktura även om en misslyckas.
+Utdata sparas bredvid respektive faktura:
+
+- `audit_<namn>.csv` och `.pdf` — beslutsrapport per faktura
+- `revisionsprotokoll_<datum>.pdf` — numrerade fynd med belopp, beräkning
+  och referens: underlaget för ändringsansökan/krav
+- `batch_sammanfattning.pdf` — översikt vid mappkörning
+
+Vid batchkörning fortsätter pipelinen med nästa faktura även om en
+misslyckas, och listar på slutet exakt vilka som behöver köras om.
 
 ## TARIC-data
 

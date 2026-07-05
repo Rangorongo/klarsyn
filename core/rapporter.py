@@ -304,3 +304,149 @@ def save_batch_summary(granskningar: list, misslyckade: list, filename: str):
 
     doc.build(story)
     print(f"Batchsammanfattning sparad till {filename}")
+
+
+# ==========================================
+# REVISIONSPROTOKOLLET
+# ==========================================
+
+def save_revision_protocol(granskningar: list, filename: str):
+    """
+    Skriver det formella revisionsprotokollet — det kompletta underlaget
+    för en ändringsansökan hos Tullverket eller ett krav mot transportör.
+
+    Upplägg:
+        1. Omfattning och metod
+        2. Sammanfattning av möjliga belopp per kategori (tull, moms, frakt)
+        3. Numrerade fynd med feltyp, belopp, beräkning, referens och åtgärd
+        4. Bilageförteckning (respektive fakturas audit-rapport)
+        5. Friskrivning — beloppen är övre gränser tills de verifierats
+
+    Args:
+        granskningar (list): Granskningsresultat (dictar med findings) från
+            en eller flera fakturor, tull- och/eller fraktmodulen blandat.
+        filename (str): Var PDF:en ska sparas.
+    """
+    _registrera_fonter()
+
+    stil_rubrik = ParagraphStyle("rubrik", fontName="Arial-Bold", fontSize=16,
+                                 alignment=1, spaceAfter=2)
+    stil_undertext = ParagraphStyle("undertext", fontName="Arial", fontSize=9,
+                                    alignment=1, textColor=colors.HexColor("#555555"),
+                                    spaceAfter=14)
+    stil_h2 = ParagraphStyle("h2", fontName="Arial-Bold", fontSize=12,
+                             spaceBefore=14, spaceAfter=6)
+    stil_fyndrubrik = ParagraphStyle("fyndrubrik", fontName="Arial-Bold", fontSize=10,
+                                     spaceBefore=12, spaceAfter=3)
+    stil_normal = ParagraphStyle("normal", fontName="Arial", fontSize=9, leading=12)
+    stil_liten = ParagraphStyle("liten", fontName="Arial", fontSize=8, leading=10,
+                                textColor=colors.HexColor("#555555"))
+
+    from datetime import date
+
+    doc = SimpleDocTemplate(
+        filename, pagesize=A4,
+        leftMargin=18 * mm, rightMargin=18 * mm,
+        topMargin=16 * mm, bottomMargin=16 * mm,
+        title="Revisionsprotokoll",
+    )
+    story = []
+
+    # --- 1. Omfattning och metod ---
+    antal_tull = sum(1 for g in granskningar if "items" in g)
+    antal_frakt = sum(1 for g in granskningar if "shipments" in g)
+    story.append(Paragraph("Revisionsprotokoll", stil_rubrik))
+    story.append(Paragraph(
+        f"Tullsyn — automatiserad revision · {date.today().isoformat()}",
+        stil_undertext,
+    ))
+    story.append(Paragraph("Omfattning och metod", stil_h2))
+    story.append(Paragraph(
+        f"Granskningen omfattar {antal_tull} tullfaktura/-or och {antal_frakt} "
+        f"fraktfaktura/-or. Tullfakturor kontrolleras mot EU:s officiella tulltaxa "
+        f"(TARIC) med datumgiltiga tullsatser, AI-dubbelkontroll av varubeskrivningar "
+        f"och deterministiska aritmetikkontroller. Fraktfakturor kontrolleras mot "
+        f"avtalslösa regler: dubbeldebitering, volymvikt, summakontroller och "
+        f"rimlighetsnivåer för tilläggsavgifter.",
+        stil_normal,
+    ))
+
+    # --- 2. Sammanfattning per kategori ---
+    alla_fynd = []
+    for g in granskningar:
+        for fynd in g.get("findings", []):
+            alla_fynd.append((g, fynd))
+
+    valuta = granskningar[0].get("currency", "EUR") if granskningar else "EUR"
+    belopp_per_modul = {"tull": 0.0, "moms": 0.0, "frakt": 0.0}
+    for _, fynd in alla_fynd:
+        if fynd.get("belopp"):
+            modul = fynd.get("modul", "tull")
+            belopp_per_modul[modul] = belopp_per_modul.get(modul, 0.0) + float(fynd["belopp"])
+
+    story.append(Paragraph("Sammanfattning", stil_h2))
+    story.append(Paragraph(
+        f"Antal fynd: <b>{len(alla_fynd)}</b>. Möjliga belopp (övre gränser): "
+        f"tull <b>{belopp_per_modul['tull']:.2f} {valuta}</b> · "
+        f"moms <b>{belopp_per_modul['moms']:.2f} {valuta}</b> · "
+        f"frakt <b>{belopp_per_modul['frakt']:.2f} {valuta}</b>.",
+        stil_normal,
+    ))
+
+    # --- 3. Numrerade fynd ---
+    if alla_fynd:
+        story.append(Paragraph("Fynd", stil_h2))
+        for nr, (g, fynd) in enumerate(alla_fynd, start=1):
+            faktura = g.get("invoice_number", "?")
+            story.append(Paragraph(
+                f"FYND {nr} — [{_pdf_text(fynd.get('kategori', 'ÖVRIGT'))}] "
+                f"{_pdf_text(fynd.get('objekt', ''))}",
+                stil_fyndrubrik,
+            ))
+            story.append(Paragraph(f"Faktura: {_pdf_text(faktura)}", stil_normal))
+            story.append(Paragraph(
+                f"Beskrivning: {_pdf_text(fynd.get('beskrivning', ''))}", stil_normal
+            ))
+            if fynd.get("belopp") is not None:
+                story.append(Paragraph(
+                    f"Möjligt belopp: <b>{float(fynd['belopp']):.2f} {valuta}</b>", stil_normal
+                ))
+            if fynd.get("berakning"):
+                story.append(Paragraph(
+                    f"Beräkning: {_pdf_text(fynd['berakning'])}", stil_normal
+                ))
+            if fynd.get("referens"):
+                story.append(Paragraph(
+                    f"Referens: {_pdf_text(fynd['referens'])}", stil_normal
+                ))
+            story.append(Paragraph(
+                f"Rekommenderad åtgärd: {_pdf_text(fynd.get('atgard', ''))}", stil_normal
+            ))
+    else:
+        story.append(Paragraph("Fynd", stil_h2))
+        story.append(Paragraph(
+            "Inga avvikelser hittades i granskningen.", stil_normal
+        ))
+
+    # --- 4. Bilageförteckning ---
+    story.append(Paragraph("Bilagor", stil_h2))
+    for g in granskningar:
+        nr = g.get("invoice_number", "?")
+        story.append(Paragraph(
+            f"• Granskningsrapport för faktura {_pdf_text(nr)} (audit-CSV och PDF)",
+            stil_normal,
+        ))
+
+    # --- 5. Friskrivning ---
+    story.append(Spacer(1, 14))
+    story.append(Paragraph(
+        "Samtliga belopp är övre gränser beräknade utifrån fakturaunderlaget och ska "
+        "verifieras mot importdeklaration respektive fraktavtal innan ansökan eller krav "
+        "ställs. Momsbelopp är normalt avdragsgilla för momsregistrerade företag och "
+        "påverkar då främst likviditet. Detta protokoll är ett underlag för ändringsansökan "
+        "— inte en myndighetsansökan i sig.",
+        stil_liten,
+    ))
+
+    doc.build(story)
+    print(f"Revisionsprotokoll sparat till {filename}")

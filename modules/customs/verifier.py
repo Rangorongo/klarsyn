@@ -71,7 +71,7 @@ def verify_hs_matches(rader: list):
     if not rader:
         return {}
 
-    from models import HSMatchResultat
+    from modules.customs.schema import HSMatchResultat
 
     prompt = _bygg_prompt(rader)
     print("Verifierar HS-klassificeringar med AI (1 anrop)...")

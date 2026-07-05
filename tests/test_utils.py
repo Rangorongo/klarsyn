@@ -137,3 +137,58 @@ def test_save_batch_summary_skapar_oversikt(tmp_path):
 
     assert pdf_fil.exists()
     assert pdf_fil.stat().st_size > 1000
+
+
+@pytest.mark.skipif(not ARIAL_FINNS, reason="Arial-fonter saknas — PDF-testet kräver Windows")
+def test_save_revision_protocol_skapar_protokoll(tmp_path):
+    """Protokollet ska klara blandade fynd från tull-, moms- och fraktmodulen."""
+    from core.rapporter import save_revision_protocol
+
+    granskningar = [
+        {
+            "invoice_number": "INV-001",
+            "currency": "EUR",
+            "items": [],
+            "findings": [
+                {"modul": "tull", "kategori": "PROCENTSATS", "objekt": "Polypropylengranulat",
+                 "beskrivning": "MFN 6.5% betalades trots EPA 0%.",
+                 "belopp": 219.70, "berakning": "3380.00 × 6.5% = 219.70 EUR",
+                 "referens": "HS 3902.10.00, ursprung JP",
+                 "atgard": "Begär omprövning hos Tullverket."},
+                {"modul": "moms", "kategori": "MOMS", "objekt": "Polypropylengranulat",
+                 "beskrivning": "Importmoms på den för höga tullen.",
+                 "belopp": 54.93, "berakning": "219.70 × 25% = 54.93 EUR",
+                 "referens": "Svensk importmoms 25%",
+                 "atgard": "Justera via momsdeklarationen."},
+            ],
+        },
+        {
+            "invoice_number": "FRAKT-001",
+            "currency": "EUR",
+            "shipments": [],
+            "findings": [
+                {"modul": "frakt", "kategori": "DUBBELDEBITERING", "objekt": "JD222",
+                 "beskrivning": "Tracking-nummer debiterat två gånger.",
+                 "belopp": 150.0, "berakning": "Dubblettens hela belopp: 150.00 EUR",
+                 "referens": "Tracking JD222",
+                 "atgard": "Begär kreditering."},
+            ],
+        },
+    ]
+
+    pdf_fil = tmp_path / "revisionsprotokoll.pdf"
+    save_revision_protocol(granskningar, str(pdf_fil))
+
+    assert pdf_fil.exists()
+    assert pdf_fil.stat().st_size > 1500
+
+
+@pytest.mark.skipif(not ARIAL_FINNS, reason="Arial-fonter saknas — PDF-testet kräver Windows")
+def test_save_revision_protocol_klarar_inga_fynd(tmp_path):
+    """En felfri granskning ska ge ett protokoll som säger just det — utan krasch."""
+    from core.rapporter import save_revision_protocol
+
+    granskningar = [{"invoice_number": "INV-REN", "currency": "EUR", "items": [], "findings": []}]
+    pdf_fil = tmp_path / "rent_protokoll.pdf"
+    save_revision_protocol(granskningar, str(pdf_fil))
+    assert pdf_fil.exists()

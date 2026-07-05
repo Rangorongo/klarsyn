@@ -24,14 +24,28 @@ misslyckas (t.ex. kvotfel) — resultatet för de lyckade sparas alltid.
 import argparse
 import glob
 import os
+from datetime import date
 
 from langgraph.graph import StateGraph, END
 import pdfplumber
-from modules.customs.schema import CustomsGraphState
-from modules.customs.pipeline import extract_invoice_data
+from core.dokumenttyp import identifiera_dokumenttyp
+from core.extraktion import extrahera_tva_pass
 from core.pii import mask_pii
-from core.rapporter import save_batch_summary, save_to_csv, save_to_pdf
+from core.rapporter import (
+    save_batch_summary,
+    save_revision_protocol,
+    save_to_csv,
+    save_to_pdf,
+)
+from modules.customs.pipeline import extract_invoice_data
 from modules.customs.rules import run_customs_audit
+from modules.customs.schema import CustomsGraphState
+from modules.freight.prompts import (
+    bygg_forsta_prompt as bygg_frakt_forsta_prompt,
+    bygg_sjalvkontroll_prompt as bygg_frakt_sjalvkontroll_prompt,
+)
+from modules.freight.rules import run_freight_audit
+from modules.freight.schema import FreightInvoice
 
 
 def load_pdf_text(path: str) -> str:
@@ -81,12 +95,13 @@ def hitta_fakturor(sokvag: str) -> list:
     raise FileNotFoundError(f"Sökvägen finns inte: {sokvag}")
 
 
-def run_pipeline(invoice_path: str) -> dict:
+def run_pipeline(invoice_path: str, raw_text: str = None) -> dict:
     """
     Orkestrerar hela tullgranskningsflödet för en given faktura.
 
     Args:
         invoice_path (str): Sökvägen till faktura-PDF:en som ska analyseras.
+        raw_text (str): Redan inläst PDF-text (om None läses den från filen).
 
     Returns:
         dict: Det granskade resultatet (med domar, flaggor och åtgärder),
@@ -106,7 +121,8 @@ def run_pipeline(invoice_path: str) -> dict:
     app = workflow.compile()
 
     # 5. Förbered initialt state
-    raw_text = load_pdf_text(invoice_path)
+    if raw_text is None:
+        raw_text = load_pdf_text(invoice_path)
     clean_text = mask_pii(raw_text)
 
     initial_state = {
@@ -140,7 +156,65 @@ def run_pipeline(invoice_path: str) -> dict:
     return audited_data
 
 
-def kor_batch(fakturor: list) -> dict:
+def run_freight_pipeline(invoice_path: str, raw_text: str = None) -> dict:
+    """
+    Orkestrerar fraktrevisionsflödet för en fraktfaktura.
+
+    Samma tvåpassmönster som tullflödet men med fraktmodulens schema
+    och prompter. Kvotkostnad: 2 Gemini-anrop (ingen TARIC-verifiering).
+
+    Args:
+        invoice_path (str): Sökvägen till fraktfaktura-PDF:en.
+        raw_text (str): Redan inläst PDF-text (om None läses den från filen).
+
+    Returns:
+        dict: Det granskade resultatet, eller None om extraktionen misslyckades.
+    """
+    if raw_text is None:
+        raw_text = load_pdf_text(invoice_path)
+    clean_text = mask_pii(raw_text)
+
+    resultat = extrahera_tva_pass(
+        clean_text,
+        FreightInvoice,
+        bygg_frakt_forsta_prompt,
+        bygg_frakt_sjalvkontroll_prompt,
+    )
+    if resultat is None:
+        print("Kunde inte extrahera data.")
+        return None
+
+    audited_data = run_freight_audit(resultat.model_dump())
+
+    mapp = os.path.dirname(invoice_path)
+    filnamn = os.path.basename(invoice_path)
+    save_to_csv(audited_data, os.path.join(mapp, f"audit_{filnamn}.csv"))
+    print("Fraktrevisionen slutförd.")
+    return audited_data
+
+
+def granska_dokument(invoice_path: str, modul: str = None) -> dict:
+    """
+    Granskar en PDF: avgör dokumenttyp och kör rätt moduls pipeline.
+
+    Args:
+        invoice_path (str): Sökvägen till PDF:en.
+        modul (str): "tull" eller "frakt" för att tvinga modulvalet,
+            eller None för automatisk detektering.
+
+    Returns:
+        dict: Granskningsresultatet från modulens pipeline.
+    """
+    raw_text = load_pdf_text(invoice_path)
+    vald_modul = modul or identifiera_dokumenttyp(mask_pii(raw_text))
+    print(f"Dokumenttyp: {vald_modul}")
+
+    if vald_modul == "frakt":
+        return run_freight_pipeline(invoice_path, raw_text)
+    return run_pipeline(invoice_path, raw_text)
+
+
+def kor_batch(fakturor: list, modul: str = None) -> dict:
     """
     Kör pipelinen på varje faktura och håller reda på VILKA som lyckades
     respektive misslyckades — så att användaren vet exakt vilka filer
@@ -160,7 +234,7 @@ def kor_batch(fakturor: list) -> dict:
     for faktura in fakturor:
         print(f"\n=== {faktura} ===")
         try:
-            resultat = run_pipeline(faktura)
+            resultat = granska_dokument(faktura, modul)
             if resultat is not None:
                 lyckade.append(faktura)
                 granskningar.append(resultat)
@@ -185,20 +259,35 @@ def main():
         default="sample_invoice.pdf",
         help="PDF-faktura eller mapp med fakturor (standard: sample_invoice.pdf)",
     )
+    parser.add_argument(
+        "--modul",
+        choices=["tull", "frakt"],
+        default=None,
+        help="Tvinga dokumenttyp (annars detekteras den automatiskt per PDF)",
+    )
     args = parser.parse_args()
 
     fakturor = hitta_fakturor(args.sokvag)
     print(f"Granskar {len(fakturor)} faktura/fakturor...")
 
-    resultat = kor_batch(fakturor)
+    resultat = kor_batch(fakturor, args.modul)
+
+    mapp = args.sokvag if os.path.isdir(args.sokvag) else os.path.dirname(fakturor[0])
 
     # Vid mappkörning med flera fakturor: skriv en översiktsrapport
     if len(fakturor) > 1 and resultat["granskningar"]:
-        mapp = args.sokvag if os.path.isdir(args.sokvag) else os.path.dirname(fakturor[0])
         save_batch_summary(
             resultat["granskningar"],
             resultat["misslyckade"],
             os.path.join(mapp, "batch_sammanfattning.pdf"),
+        )
+
+    # Revisionsprotokollet — det formella underlaget för ändringsansökan —
+    # skrivs efter varje körning som gav resultat.
+    if resultat["granskningar"]:
+        save_revision_protocol(
+            resultat["granskningar"],
+            os.path.join(mapp, f"revisionsprotokoll_{date.today().isoformat()}.pdf"),
         )
 
     print(f"\nKlart: {len(resultat['lyckade'])} lyckades, "

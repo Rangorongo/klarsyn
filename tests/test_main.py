@@ -72,14 +72,14 @@ def test_kor_batch_listar_vilka_som_misslyckades(monkeypatch):
     """
     import main as main_modul
 
-    def fejk_pipeline(faktura):
+    def fejk_granskning(faktura, modul=None):
         if "trasig" in faktura:
             raise RuntimeError("simulerat kvotfel")
         if "tom" in faktura:
             return None  # extraktionen gav inget
         return {"items": []}
 
-    monkeypatch.setattr(main_modul, "run_pipeline", fejk_pipeline)
+    monkeypatch.setattr(main_modul, "granska_dokument", fejk_granskning)
 
     resultat = main_modul.kor_batch(["bra_1.pdf", "trasig.pdf", "tom.pdf", "bra_2.pdf"])
 
@@ -95,16 +95,65 @@ def test_kor_batch_fortsatter_efter_fel(monkeypatch):
 
     anropade = []
 
-    def fejk_pipeline(faktura):
+    def fejk_granskning(faktura, modul=None):
         anropade.append(faktura)
         if faktura == "forsta.pdf":
             raise RuntimeError("simulerat fel")
         return {"items": []}
 
-    monkeypatch.setattr(main_modul, "run_pipeline", fejk_pipeline)
+    monkeypatch.setattr(main_modul, "granska_dokument", fejk_granskning)
 
     resultat = main_modul.kor_batch(["forsta.pdf", "andra.pdf"])
 
     assert anropade == ["forsta.pdf", "andra.pdf"]  # båda kördes
     assert resultat["misslyckade"] == ["forsta.pdf"]
     assert resultat["lyckade"] == ["andra.pdf"]
+
+
+# --- Dokumentrouting: rätt PDF till rätt modul ---
+
+FRAKT_TEXT = """FREIGHT INVOICE — DHL Express
+Tracking: JD014600003SE | Bränsletillägg (fuel surcharge): 22.5%
+Debiterad vikt: 14.5 kg"""
+
+TULL_TEXT = """COMMERCIAL INVOICE — Incoterm CIF
+HS-kod: 8534.00.00 | Ursprungsland: CN"""
+
+
+def test_granska_dokument_routar_frakt_automatiskt(monkeypatch):
+    """En fraktfaktura ska automatiskt hamna i fraktmodulens pipeline."""
+    import main as main_modul
+
+    monkeypatch.setattr(main_modul, "load_pdf_text", lambda p: FRAKT_TEXT)
+    monkeypatch.setattr(main_modul, "run_freight_pipeline",
+                        lambda p, raw_text=None: {"typ": "frakt"})
+    monkeypatch.setattr(main_modul, "run_pipeline",
+                        lambda p, raw_text=None: {"typ": "tull"})
+
+    assert main_modul.granska_dokument("nagon.pdf") == {"typ": "frakt"}
+
+
+def test_granska_dokument_routar_tull_automatiskt(monkeypatch):
+    """En tullfaktura ska automatiskt hamna i tullmodulens pipeline."""
+    import main as main_modul
+
+    monkeypatch.setattr(main_modul, "load_pdf_text", lambda p: TULL_TEXT)
+    monkeypatch.setattr(main_modul, "run_freight_pipeline",
+                        lambda p, raw_text=None: {"typ": "frakt"})
+    monkeypatch.setattr(main_modul, "run_pipeline",
+                        lambda p, raw_text=None: {"typ": "tull"})
+
+    assert main_modul.granska_dokument("nagon.pdf") == {"typ": "tull"}
+
+
+def test_modul_flaggan_overstyar_detekteringen(monkeypatch):
+    """--modul tull ska tvinga tullmodulen även för fraktliknande text."""
+    import main as main_modul
+
+    monkeypatch.setattr(main_modul, "load_pdf_text", lambda p: FRAKT_TEXT)
+    monkeypatch.setattr(main_modul, "run_freight_pipeline",
+                        lambda p, raw_text=None: {"typ": "frakt"})
+    monkeypatch.setattr(main_modul, "run_pipeline",
+                        lambda p, raw_text=None: {"typ": "tull"})
+
+    assert main_modul.granska_dokument("nagon.pdf", modul="tull") == {"typ": "tull"}
