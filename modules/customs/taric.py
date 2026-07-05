@@ -13,7 +13,9 @@ Så här fungerar det:
 import os
 import pandas as pd
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Filen ligger i modules/customs/ — taric_data/ ligger i projektroten,
+# därför tre steg upp (customs → modules → roten).
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TARIC_DIR = os.path.join(BASE_DIR, "taric_data")
 
 DUTIES_PATH = os.path.join(TARIC_DIR, "Duties Import 01-99.xlsx")

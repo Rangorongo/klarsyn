@@ -1,33 +1,21 @@
 """
-extractor.py
+modules/customs/prompts.py
 
-Denna modul hanterar inläsning och dataextraktion från ostrukturerade PDF-dokument.
+Tullmodulens prompter för tvåpass-extraktionen (core/extraktion.py).
 
-Extraktionen sker nu i TVÅ steg istället för ett:
-    1. Första extraktion: AI:n läser fakturan och fyller i CustomsInvoice-schemat,
-       precis som tidigare.
-    2. Självkontroll: Samma AI får se originaltexten OCH sitt eget första svar,
-       och ombeds granska det en gång till — som att be en kollega läsa igenom
-       fakturan en andra gång innan den skickas vidare. Den rättar eventuella
-       fel och sätter en konfidensnivå ("hög"/"låg") per varurad.
-
-Varför två anrop istället för ett?
-    Vi har medvetet valt kvalitet över hastighet/kostnad: färre fakturor per
-    dag på gratiskvoten är okej, eftersom kunden hellre ska vänta lite längre
-    och lita på resultatet.
-
-Alla AI-anrop går via llm_klient.py, som automatiskt roterar till nästa
-gratis Gemini-modell om kvoten tar slut (429) och hanterar serverfel (503).
+Självkontrollprompten är noggrant formulerad: den förbjuder AI:n att
+skriva om HS-koder och landskoder till andra format (nedströms-systemen
+kräver exakt originalformat) och att hitta på review_note-förklaringar
+som inte går att läsa i fakturatexten.
 """
 
-from llm_klient import anropa_strukturerat
-from models import CustomsInvoice, CustomsGraphState
+from modules.customs.schema import CustomsInvoice
 
 
-def _build_first_pass_prompt(raw_text: str) -> str:
+def bygg_forsta_prompt(raw_text: str) -> str:
     """Bygger prompten för den första, råa extraktionen."""
     return f"""
-    Du är en expert på tullfakturor. Extrahera data från följande text enligt 
+    Du är en expert på tullfakturor. Extrahera data från följande text enligt
     schema-definitionen för CustomsInvoice.
 
     Fakturatext:
@@ -35,7 +23,7 @@ def _build_first_pass_prompt(raw_text: str) -> str:
     """
 
 
-def _build_self_check_prompt(raw_text: str, first_pass: CustomsInvoice) -> str:
+def bygg_sjalvkontroll_prompt(raw_text: str, first_pass: CustomsInvoice) -> str:
     """
     Bygger prompten för självkontrollssteget.
 
@@ -68,7 +56,7 @@ def _build_self_check_prompt(raw_text: str, first_pass: CustomsInvoice) -> str:
        Du får bara ändra värdet om det är sakligt FEL (fel land, fel kod),
        aldrig bara för att "förtydliga" eller skriva om till annat format.
        Nedströms-system förväntar sig exakt samma format som ursprungligen.
-    4. För VARJE varurad (item), sätt fältet "confidence" till antingen
+    5. För VARJE varurad (item), sätt fältet "confidence" till antingen
        "hög" eller "låg":
        - "hög": du är säker på att alla fält för denna vara är korrekta.
        - "låg": något är otydligt, tvetydigt, eller du var tvungen att gissa.
@@ -87,35 +75,3 @@ def _build_self_check_prompt(raw_text: str, first_pass: CustomsInvoice) -> str:
     Returnera hela den granskade och eventuellt rättade fakturan enligt
     CustomsInvoice-schemat.
     """
-
-
-def extract_invoice_data(state: CustomsGraphState) -> CustomsGraphState:
-    """
-    Extraherar strukturerad data från fakturatexten i två steg:
-    en första extraktion och en efterföljande självkontroll.
-
-    Använder Pydantic-modellen CustomsInvoice för att tvinga AI:n att
-    returnera data i ett förutsägbart och validerbart format i båda stegen.
-
-    Args:
-        state (CustomsGraphState): Innehåller råtexten från PDF:en
-
-    Returns:
-        CustomsGraphState: Uppdaterat state med extraherad och självgranskad faktурadata
-    """
-    raw_text = state["raw_pdf_text"]
-
-    # Steg 1: Första extraktionen (som tidigare)
-    print("Extraherar faktura (steg 1/2)...")
-    first_pass = anropa_strukturerat(_build_first_pass_prompt(raw_text), CustomsInvoice)
-
-    # Steg 2: Självkontroll — AI:n granskar sitt eget första svar
-    print("Granskar det egna svaret (steg 2/2, självkontroll)...")
-    second_pass = anropa_strukturerat(
-        _build_self_check_prompt(raw_text, first_pass),
-        CustomsInvoice,
-    )
-
-    return {
-        "final_output": second_pass.model_dump()
-    }

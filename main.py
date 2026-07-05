@@ -27,10 +27,11 @@ import os
 
 from langgraph.graph import StateGraph, END
 import pdfplumber
-from models import CustomsGraphState
-from extractor import extract_invoice_data
-from utils import mask_pii, save_batch_summary, save_to_csv, save_to_pdf
-from customs_logic import run_customs_audit
+from modules.customs.schema import CustomsGraphState
+from modules.customs.pipeline import extract_invoice_data
+from core.pii import mask_pii
+from core.rapporter import save_batch_summary, save_to_csv, save_to_pdf
+from modules.customs.rules import run_customs_audit
 
 
 def load_pdf_text(path: str) -> str:

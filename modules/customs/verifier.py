@@ -17,7 +17,7 @@ istället för att krascha — customs_logic.py ger då berörda varor domen
 "gul" med en notering, och pipelinen fortsätter.
 """
 
-from llm_klient import anropa_strukturerat
+from core.llm_klient import anropa_strukturerat
 
 
 def _bygg_prompt(rader: list) -> str:

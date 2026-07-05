@@ -21,8 +21,8 @@ Viktigt om besparingsbeloppen:
     rapporten, så att vi aldrig lovar kunden pengar som inte finns.
 """
 
-from taric import load_taric_data, lookup_antidumping, lookup_duty, verify_hs_description
-from verifier import verify_hs_matches
+from modules.customs.taric import load_taric_data, lookup_antidumping, lookup_duty, verify_hs_description
+from modules.customs.verifier import verify_hs_matches
 
 
 def _avviker(forvantat: float, faktiskt: float) -> bool:

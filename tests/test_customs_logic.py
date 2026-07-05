@@ -14,7 +14,7 @@ Syntetisk TARIC-data som testerna utgår ifrån:
 """
 
 import pytest
-from customs_logic import run_customs_audit
+from modules.customs.rules import run_customs_audit
 
 
 def _bygg_faktura(items, shipping_cost=0.0, currency="EUR", total_invoice_amount=None):
@@ -253,7 +253,7 @@ def test_allt_stammer_ger_gron_dom(taric_data_patchad):
 def test_ai_sager_nej_ger_rod_dom_och_flagga(taric_data_patchad, monkeypatch):
     """AI-bedömning 'nej' = trolig felklassificering → röd dom + 🔴-flagga med motivering."""
     monkeypatch.setattr(
-        "customs_logic.verify_hs_matches",
+        "modules.customs.rules.verify_hs_matches",
         lambda rader: {r["index"]: ("nej", "Beskrivningen avser en helt annan varutyp.") for r in rader}
     )
     faktura = _bygg_faktura([_vara()])
@@ -268,7 +268,7 @@ def test_ai_sager_nej_ger_rod_dom_och_flagga(taric_data_patchad, monkeypatch):
 def test_ai_sager_osaker_ger_gul_dom(taric_data_patchad, monkeypatch):
     """AI-bedömning 'osäker' ska ge gul dom."""
     monkeypatch.setattr(
-        "customs_logic.verify_hs_matches",
+        "modules.customs.rules.verify_hs_matches",
         lambda rader: {r["index"]: ("osäker", "Beskrivningen är för vag.") for r in rader}
     )
     faktura = _bygg_faktura([_vara()])
@@ -281,7 +281,7 @@ def test_misslyckad_ai_verifiering_ger_gul_dom(taric_data_patchad, monkeypatch):
     Om AI-verifieringen inte kan köras (kvot slut → None) ska varan bli gul
     med en notering — pipelinen får ALDRIG krascha på kvotfel.
     """
-    monkeypatch.setattr("customs_logic.verify_hs_matches", lambda rader: None)
+    monkeypatch.setattr("modules.customs.rules.verify_hs_matches", lambda rader: None)
     faktura = _bygg_faktura([_vara()])
     resultat = run_customs_audit(faktura)
     assert resultat["items"][0]["verdict"] == "gul"

@@ -6,7 +6,7 @@ Fejk-LLM:er simulerar kvotfel (429), serverfel (503) och lyckade svar.
 """
 
 import pytest
-import llm_klient
+import core.llm_klient as llm_klient
 
 
 class _FejkStructured:

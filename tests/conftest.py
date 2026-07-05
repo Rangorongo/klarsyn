@@ -93,10 +93,10 @@ def taric_data_patchad(monkeypatch, taric_data_syntetisk):
     customs_logic.verify_hs_matches själva med monkeypatch.
     """
     monkeypatch.setattr(
-        "customs_logic.load_taric_data",
+        "modules.customs.rules.load_taric_data",
         lambda: taric_data_syntetisk
     )
     monkeypatch.setattr(
-        "customs_logic.verify_hs_matches",
+        "modules.customs.rules.verify_hs_matches",
         lambda rader: {r["index"]: ("ja", "Beskrivningarna stämmer överens.") for r in rader}
     )

@@ -7,7 +7,7 @@ Inga riktiga Excel-filer behövs och inga nätverksanrop görs.
 
 import os
 import pytest
-from taric import lookup_antidumping, lookup_duty, verify_hs_description
+from modules.customs.taric import lookup_antidumping, lookup_duty, verify_hs_description
 
 
 def test_hs_normalisering_tar_bort_punkter_och_fyller_till_10(taric_data_syntetisk):
@@ -139,7 +139,7 @@ def test_riktiga_taric_filer_har_ratt_kolumner():
     Verifierar också cachen: andra anropet ska återanvända samma data
     istället för att läsa om 8 MB Excel.
     """
-    from taric import load_taric_data
+    from modules.customs.taric import load_taric_data
     data = load_taric_data()
     assert load_taric_data() is data  # cache: samma objekt, ingen omläsning
 

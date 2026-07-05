@@ -11,7 +11,7 @@ Testet skippas automatiskt på datorer utan Arial-fonterna
 
 import os
 import pytest
-from utils import save_to_pdf
+from core.rapporter import save_to_pdf
 
 ARIAL_FINNS = os.path.exists("C:/Windows/Fonts/arial.ttf") and os.path.exists("C:/Windows/Fonts/arialbd.ttf")
 
@@ -114,7 +114,7 @@ def test_save_to_pdf_klarar_manga_varor_utan_krasch(tmp_path):
 @pytest.mark.skipif(not ARIAL_FINNS, reason="Arial-fonter saknas — PDF-testet kräver Windows")
 def test_save_batch_summary_skapar_oversikt(tmp_path):
     """Batchöversikten ska sammanfatta flera fakturor + lista misslyckade."""
-    from utils import save_batch_summary
+    from core.rapporter import save_batch_summary
 
     granskningar = [
         {

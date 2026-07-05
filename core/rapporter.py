@@ -1,17 +1,15 @@
 """
-utils.py
+core/rapporter.py
 
-En samling fristående hjälpfunktioner (utility functions) som används tvärs över hela projektet.
-Funktionerna här är oberoende av specifik affärslogik och hanterar generella operationer.
+All rapportgenerering — delas av samtliga moduler (tull, frakt...).
 
-Innehåller funktioner för:
-    - GDPR-maskering: Anonymisering av personuppgifter (NER) innan data skickas till externa API:er.
-    - CSV-export: Plattar till granskningsresultatet för Excel.
-    - PDF-rapport: "Beslutsrapporten" — byggd med reportlab platypus så att
+Innehåller:
+    - save_to_csv: plattar till granskningsresultatet för Excel.
+    - save_to_pdf: "Beslutsrapporten" — byggd med reportlab platypus så att
       sidbrytningar och radbrytningar sköts automatiskt, oavsett antal varor.
+    - save_batch_summary: översiktsrapport för en hel batchkörning.
 """
 
-import re
 from xml.sax.saxutils import escape
 
 import pandas as pd
@@ -22,14 +20,6 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
-
-def mask_pii(text: str) -> str:
-    """Maskerar känslig info som e-post och telefonnummer (GDPR)."""
-    # Exempel: maskera e-postadresser
-    text = re.sub(r'[\w\.-]+@[\w\.-]+', '[MASKED_EMAIL]', text)
-    # Här kan du lägga till fler regler efter hand
-    return text
 
 
 def save_to_csv(final_data: dict, filename: str = "resultat.csv"):
@@ -60,6 +50,7 @@ _EMOJI_TILL_TAGG = {
     "🧮": "[RÄKNEFEL]",
     "🟡": "[OSÄKER]",
     "🚨": "[ANTIDUMPNING]",
+    "🧾": "[MOMS]",
 }
 
 _VERDICT_FARG = {"grön": "#1a7f37", "gul": "#b8860b", "röd": "#c0392b"}
@@ -80,6 +71,12 @@ def _pdf_text(text) -> str:
     return text
 
 
+def _registrera_fonter():
+    """Registrerar Arial-fonterna (krävs för å/ä/ö — Windows-sökvägar)."""
+    pdfmetrics.registerFont(TTFont("Arial", "C:/Windows/Fonts/arial.ttf"))
+    pdfmetrics.registerFont(TTFont("Arial-Bold", "C:/Windows/Fonts/arialbd.ttf"))
+
+
 def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
     """
     Genererar Beslutsrapporten som PDF.
@@ -95,8 +92,7 @@ def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
     Byggd med reportlab platypus: långa texter radbryts och nya sidor
     skapas automatiskt — rapporten klarar hur många varor som helst.
     """
-    pdfmetrics.registerFont(TTFont("Arial", "C:/Windows/Fonts/arial.ttf"))
-    pdfmetrics.registerFont(TTFont("Arial-Bold", "C:/Windows/Fonts/arialbd.ttf"))
+    _registrera_fonter()
 
     stil_rubrik = ParagraphStyle("rubrik", fontName="Arial-Bold", fontSize=16,
                                  alignment=1, spaceAfter=2)
@@ -164,6 +160,13 @@ def save_to_pdf(final_data: dict, filename: str = "resultat.pdf"):
     if savings and savings > 0:
         story.append(Paragraph("Möjlig återbetalning (övre gräns)", stil_h2))
         story.append(Paragraph(f"<b>{savings} {valuta}</b>", stil_normal))
+        moms = final_data.get("potential_vat", 0)
+        if moms and moms > 0:
+            story.append(Paragraph(
+                f"Därtill möjlig momskonsekvens: {moms} {valuta} i överbetald importmoms "
+                f"(normalt avdragsgill — påverkar främst likviditet).",
+                stil_normal,
+            ))
         story.append(Paragraph(
             "Beloppet gäller endast om MFN-tull betalades vid importen. Verifiera alltid "
             "mot importdeklarationen innan återbetalning söks hos Tullverket.",
@@ -238,8 +241,7 @@ def save_batch_summary(granskningar: list, misslyckade: list, filename: str):
         misslyckade (list): Sökvägar till fakturor som inte kunde granskas.
         filename (str): Var PDF:en ska sparas.
     """
-    pdfmetrics.registerFont(TTFont("Arial", "C:/Windows/Fonts/arial.ttf"))
-    pdfmetrics.registerFont(TTFont("Arial-Bold", "C:/Windows/Fonts/arialbd.ttf"))
+    _registrera_fonter()
 
     stil_rubrik = ParagraphStyle("rubrik", fontName="Arial-Bold", fontSize=16,
                                  alignment=1, spaceAfter=12)
