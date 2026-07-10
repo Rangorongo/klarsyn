@@ -10,20 +10,59 @@ import pytest
 from main import hitta_fakturor, load_pdf_text
 
 
-def test_skannad_pdf_ger_begripligt_fel(tmp_path):
-    """
-    En PDF utan läsbar text (t.ex. inskannad bild) ska ge ett tydligt
-    svenskt felmeddelande — inte en tom text som ger obegripliga AI-fel.
-    """
+def _tom_pdf(tmp_path):
+    """Skapar en PDF med bara grafik — ingen läsbar text."""
     from reportlab.pdfgen import canvas
 
     tom_pdf = tmp_path / "skannad.pdf"
     c = canvas.Canvas(str(tom_pdf))
-    c.rect(100, 100, 200, 200)  # bara grafik, ingen text
+    c.rect(100, 100, 200, 200)
     c.save()
+    return str(tom_pdf)
 
-    with pytest.raises(ValueError, match="inskannad"):
-        load_pdf_text(str(tom_pdf))
+
+def test_skannad_pdf_utan_tesseract_ger_begripligt_fel(tmp_path, monkeypatch):
+    """
+    Utan OCR-stöd ska en inskannad PDF ge ett tydligt svenskt fel
+    med installationstips — inte en tom text som ger obegripliga AI-fel.
+    """
+    import main as main_modul
+    monkeypatch.setattr(main_modul, "tesseract_finns", lambda: False)
+
+    with pytest.raises(ValueError, match="Tesseract"):
+        load_pdf_text(_tom_pdf(tmp_path))
+
+
+def test_skannad_pdf_med_tesseract_laser_via_ocr(tmp_path, monkeypatch):
+    """Med OCR-stöd ska en inskannad PDF läsas och OCR-flaggan sättas."""
+    import main as main_modul
+    monkeypatch.setattr(main_modul, "tesseract_finns", lambda: True)
+    monkeypatch.setattr(main_modul, "las_text_med_ocr",
+                        lambda p: "COMMERCIAL INVOICE HS-kod 8534.00.00")
+
+    text = load_pdf_text(_tom_pdf(tmp_path))
+    assert "8534.00.00" in text
+    assert main_modul._ocr_anvandes_senast is True
+
+
+def test_ocr_underlag_sanker_grona_domar_till_gula():
+    """OCR-läst underlag ska aldrig ge gröna domar — de sänks till gula."""
+    from main import _markera_ocr_underlag
+
+    resultat = {
+        "items": [
+            {"description": "A", "verdict": "grön", "verdict_reasons": ["Alla kontroller överens"]},
+            {"description": "B", "verdict": "röd", "verdict_reasons": ["Räknefel"]},
+        ],
+        "verdict_summary": {"grön": 1, "gul": 0, "röd": 1},
+    }
+    resultat = _markera_ocr_underlag(resultat)
+
+    assert resultat["items"][0]["verdict"] == "gul"
+    assert resultat["items"][1]["verdict"] == "röd"  # röd förblir röd
+    assert any("OCR" in s for s in resultat["items"][1]["verdict_reasons"])
+    assert resultat["verdict_summary"] == {"grön": 0, "gul": 1, "röd": 1}
+    assert resultat["ocr_anvand"] is True
 
 
 def test_enskild_pdf_ger_lista_med_en(tmp_path):

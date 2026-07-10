@@ -32,6 +32,7 @@ from core.dokumenttyp import identifiera_dokumenttyp
 from core.extraktion import extrahera_tva_pass
 from core.llm_klient import hamta_anropslogg, nollstall_anropslogg
 from core.metadata import bygg_granskningsmetadata
+from core.ocr import las_text_med_ocr, tesseract_finns
 from core.pii import mask_pii
 from core.valuta import hamta_sek_kurs
 from core.rapporter import (
@@ -51,23 +52,69 @@ from modules.freight.rules import run_freight_audit
 from modules.freight.schema import FreightInvoice
 
 
+# Sätts av load_pdf_text när OCR användes för senaste inläsningen,
+# och samlas per körning i _ocr_i_korning (för protokollets metadata).
+_ocr_anvandes_senast = False
+_ocr_i_korning = False
+
+
 def load_pdf_text(path: str) -> str:
     """
     Hjälpfunktion för att läsa in text från en PDF.
 
-    Ger ett tydligt fel om PDF:en saknar läsbar text (inskannad bild) —
-    annars skulle AI:n få en tom text och ge obegripliga svar.
+    Inskannade PDF:er (bilder utan textyta) läses med OCR om Tesseract
+    är installerat — annars ges ett tydligt fel med installationstips.
     """
+    global _ocr_anvandes_senast, _ocr_i_korning
+    _ocr_anvandes_senast = False
+
     with pdfplumber.open(path) as pdf:
         full_text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+
+    if not full_text.strip() and tesseract_finns():
+        print(f"Ingen textyta i {os.path.basename(path)} — läser med OCR (inskannat dokument)...")
+        full_text = las_text_med_ocr(path)
+        if full_text.strip():
+            _ocr_anvandes_senast = True
+            _ocr_i_korning = True
 
     if not full_text.strip():
         raise ValueError(
             f"Ingen läsbar text hittades i {path} — PDF:en verkar vara inskannad "
-            f"(en bild av en faktura, inte digital text). OCR stöds inte ännu: "
-            f"be leverantören om en digital PDF, eller konvertera med ett OCR-verktyg."
+            f"(en bild av en faktura, inte digital text). Installera Tesseract för "
+            f"OCR-stöd:  winget install UB-Mannheim.TesseractOCR"
         )
     return full_text
+
+
+def _markera_ocr_underlag(resultat: dict) -> dict:
+    """
+    OCR-läst underlag är mer felbenäget — granskningen blir extra försiktig:
+    gröna domar sänks till gula med uppmaning att kontrollera mot originalet,
+    och alla objekt får OCR-noteringen i sina domskäl.
+    """
+    if not resultat:
+        return resultat
+
+    objekt = resultat.get("items", []) + resultat.get("shipments", [])
+    for obj in objekt:
+        if obj.get("verdict") == "grön":
+            obj["verdict"] = "gul"
+            obj["verdict_reasons"] = [
+                "OCR-läst underlag — kontrollera värdena mot originalfakturan"
+            ]
+        elif obj.get("verdict"):
+            obj.setdefault("verdict_reasons", []).append("OCR-läst underlag")
+
+    if objekt and "verdict_summary" in resultat:
+        summary = {"grön": 0, "gul": 0, "röd": 0}
+        for obj in objekt:
+            if obj.get("verdict") in summary:
+                summary[obj["verdict"]] += 1
+        resultat["verdict_summary"] = summary
+
+    resultat["ocr_anvand"] = True
+    return resultat
 
 
 def hitta_fakturor(sokvag: str) -> list:
@@ -227,13 +274,24 @@ def granska_dokument(invoice_path: str, modul: str = None, kund: str = "standard
     Returns:
         dict: Granskningsresultatet från modulens pipeline.
     """
+    # Nollställ OCR-flaggan FÖRE inläsningen — den får aldrig ärva ett
+    # värde från en tidigare faktura.
+    global _ocr_anvandes_senast
+    _ocr_anvandes_senast = False
+
     raw_text = load_pdf_text(invoice_path)
+    ocr_anvandes = _ocr_anvandes_senast
     vald_modul = modul or identifiera_dokumenttyp(mask_pii(raw_text))
     print(f"Dokumenttyp: {vald_modul}")
 
     if vald_modul == "frakt":
-        return run_freight_pipeline(invoice_path, raw_text, kund=kund)
-    return run_pipeline(invoice_path, raw_text)
+        resultat = run_freight_pipeline(invoice_path, raw_text, kund=kund)
+    else:
+        resultat = run_pipeline(invoice_path, raw_text)
+
+    if ocr_anvandes:
+        resultat = _markera_ocr_underlag(resultat)
+    return resultat
 
 
 def kor_batch(fakturor: list, modul: str = None, kund: str = "standard") -> dict:
@@ -297,6 +355,8 @@ def main():
     fakturor = hitta_fakturor(args.sokvag)
     print(f"Granskar {len(fakturor)} faktura/fakturor...")
 
+    global _ocr_i_korning
+    _ocr_i_korning = False
     nollstall_anropslogg()
     resultat = kor_batch(fakturor, args.modul, args.kund)
 
@@ -313,7 +373,7 @@ def main():
     # Revisionsprotokollet — det formella underlaget för ändringsansökan —
     # skrivs efter varje körning som gav resultat, med full spårbarhet.
     if resultat["granskningar"]:
-        metadata = bygg_granskningsmetadata()
+        metadata = bygg_granskningsmetadata(ocr_anvand=_ocr_i_korning)
 
         # SEK-omräkning för protokollets sammanfattning (Tullverket räknar i SEK)
         valuta = resultat["granskningar"][0].get("currency", "EUR")

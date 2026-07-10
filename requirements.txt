@@ -6,3 +6,5 @@ openpyxl
 reportlab
 python-dotenv
 pytest
+pytesseract
+pypdfium2
