@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deklarationskontrollen — mockup</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Hoppa till huvudinnehåll</a>
+
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>
+      </svg>
+      <span>Deklarationskontrollen</span>
+    </div>
+    <span class="trust-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/>
+      </svg>
+      100% lokalt
+    </span>
+  </header>
+
+  <main id="main-content">
+
+    <!-- LANDING -->
+    <section id="view-landing" class="view active" aria-labelledby="landing-heading">
+      <div class="hero">
+        <span class="hero-eyebrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/></svg>
+          Ny idé — mockup
+        </span>
+        <h1 id="landing-heading" tabindex="-1">Hitta pengarna du <span class="accent">missar</span> i din deklaration</h1>
+        <p class="lead">Ladda upp din förifyllda deklaration från Skatteverket. Vi ställer några enkla följdfrågor och visar exakt vilka avdrag du kan ha missat.</p>
+        <button class="btn btn-primary js-start-analysis" id="btn-start">
+          Starta analys
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
+
+        <div class="trust-row">
+          <span class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+            Ingen inloggning krävs
+          </span>
+          <span class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            Klart på ~5 minuter
+          </span>
+          <span class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/></svg>
+            Din data lämnar aldrig din dator
+          </span>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16l1.5-5A2 2 0 017.4 9.5h9.2a2 2 0 011.9 1.5L20 16"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><circle cx="7.5" cy="20" r="1.3"/><circle cx="16.5" cy="20" r="1.3"/></svg>
+          </span>
+          <h3>Resor & dubbel bosättning</h3>
+          <p>Missade reseavdrag och avdrag för tillfälligt boende på annan ort.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M18 6L6 18"/></svg>
+          </span>
+          <h3>Ränta & kapital</h3>
+          <p>Ränteutgifter och förlustavdrag på aktier/fonder som lätt glöms bort.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-6 8 6"/><path d="M6 10v9h12v-9"/></svg>
+          </span>
+          <h3>RUT & ROT</h3>
+          <p>Kontroll att hushållsnära avdrag är rätt redovisade.</p>
+        </div>
+      </div>
+
+      <!-- PROBLEMET -->
+      <section class="section" aria-labelledby="problem-heading">
+        <div class="section-heading">
+          <span class="section-eyebrow">Problemet</span>
+          <h2 id="problem-heading">Deklarationen är byggd för att du ska missa saker</h2>
+          <p>Det här är vad vi själva stötte på — och vad vi vet att fler känner igen.</p>
+        </div>
+        <div class="problem-grid">
+          <div class="problem-item">
+            <span class="icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 16.5h.01"/></svg>
+            </span>
+            <div>
+              <h3>Skatteverkets regler är svåra att tolka</h3>
+              <p>Vad som räknas som avdragsgillt beror på detaljer som är lätta att missa om man inte jobbar med det dagligen.</p>
+            </div>
+          </div>
+          <div class="problem-item">
+            <span class="icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3-5 7-5"/><circle cx="17" cy="8" r="2.5"/><path d="M15 20c.3-2.6 2-4.3 4.5-4.8"/></svg>
+            </span>
+            <div>
+              <h3>Vänner och bekanta ger olika svar</h3>
+              <p>Man frågar runt, får motstridig information, och vet ändå inte om man gjorde rätt.</p>
+            </div>
+          </div>
+          <div class="problem-item">
+            <span class="icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 14h4"/></svg>
+            </span>
+            <div>
+              <h3>Att ta hjälp av banken eller en rådgivare kostar</h3>
+              <p>Tid, bokade möten och ibland en avgift — för något som borde gå snabbt att kolla.</p>
+            </div>
+          </div>
+          <div class="problem-item">
+            <span class="icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+            </span>
+            <div>
+              <h3>De flesta godkänner bara det som redan är ifyllt</h3>
+              <p>Skatteverkets förslag är inte optimerat för dig — det är en utgångspunkt, inte facit.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SÅ FUNGERAR DET -->
+      <section class="section" aria-labelledby="howitworks-heading">
+        <div class="section-heading">
+          <span class="section-eyebrow">Så fungerar det</span>
+          <h2 id="howitworks-heading">Från underlag till hittade pengar</h2>
+          <p>Fyra steg, och din del av jobbet tar mindre tid än en kafferast.</p>
+        </div>
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-number">1</span>
+            <div>
+              <h3>Ladda upp ditt underlag</h3>
+              <p>Din förifyllda deklaration från Skatteverket (XML eller PDF) — eller prova med exempeldata direkt.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-number">2</span>
+            <div>
+              <h3>Svara på några snabba frågor</h3>
+              <p>Vi ställer bara följdfrågor som faktiskt spelar roll för just din situation.</p>
+              <span class="step-meta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Din arbetsinsats: under 15 minuter
+              </span>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-number">3</span>
+            <div>
+              <h3>Vi analyserar och hittar möjliga avdrag</h3>
+              <p>Du får en tydlig lista med belopp, motivering och källhänvisning till Skatteverkets regler.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-number">4</span>
+            <div>
+              <h3>Du betalar bara om vi hittar pengar</h3>
+              <p>Ingen träff, ingen kostnad. Hittar vi något tar vi en andel av det du faktiskt får tillbaka.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODELLEN -->
+      <section class="section" aria-labelledby="pricing-heading">
+        <div class="section-heading">
+          <span class="section-eyebrow">Modellen</span>
+          <h2 id="pricing-heading">Vi tjänar bara pengar när du gör det</h2>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-headline">25% av det vi hittar åt dig</div>
+          <p class="pricing-sub">Ingen fast avgift, inget abonnemang. Vi tar en andel av de pengar vår analys faktiskt hjälper dig få tillbaka — inget annat.</p>
+          <div class="pricing-points">
+            <span class="pricing-point">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>
+              Hittar vi inget betalar du inget
+            </span>
+            <span class="pricing-point">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              Din arbetsinsats: under 15 minuter
+            </span>
+            <span class="pricing-point">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+              Betala enkelt när du fått pengarna
+            </span>
+          </div>
+          <div class="pricing-example">
+            Exempel: hittar vi <strong>10 000 kr</strong> i avdrag betalar du <strong>2 500 kr</strong> i avgift — du behåller <strong>7 500 kr</strong> du annars hade missat.
+          </div>
+          <div class="payment-methods">
+            <span class="payment-pill">Klarna</span>
+            <span class="payment-pill">Swish</span>
+            <span class="payment-pill">Bankkort</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- OM PLATTFORMEN -->
+      <section class="section" aria-labelledby="about-heading">
+        <div class="section-heading">
+          <span class="section-eyebrow">Om plattformen</span>
+          <h2 id="about-heading">Byggd för att lösa ett problem vi själva hade</h2>
+        </div>
+        <div class="card about-card">
+          <p>Deklarationskontrollen startade som ett sätt att sluta gissa sig fram varje vår. Istället för att ringa banken eller fråga en kompis som "kan sånt", ville vi ha ett verktyg som faktiskt går igenom underlaget systematiskt och visar var pengarna finns.</p>
+          <p>Målet är att göra samma typ av avdragskoll som en rådgivare skulle göra — tillgänglig för alla, utan krångel och utan att du behöver kunna skattelagstiftning.</p>
+          <div class="about-stats">
+            <div class="about-stat">
+              <div class="value">4</div>
+              <div class="label">avdragsområden vid start</div>
+            </div>
+            <div class="about-stat">
+              <div class="value">&lt;15 min</div>
+              <div class="label">din arbetsinsats</div>
+            </div>
+            <div class="about-stat">
+              <div class="value">0 kr</div>
+              <div class="label">om vi inget hittar</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FRÅGOR -->
+      <section class="section" aria-labelledby="faq-heading">
+        <div class="section-heading">
+          <span class="section-eyebrow">Frågor</span>
+          <h2 id="faq-heading">Vanliga frågor</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>Vad kostar det om ni inte hittar något?
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <p class="faq-answer">Ingenting. Vi jobbar enligt no cure no pay — hittar vi inga avdrag du kan använda betalar du inte en krona.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Hur betalar jag avgiften?
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <p class="faq-answer">Med Klarna, Swish eller bankkort — när vi visat exakt vad vi hittat och du godkänt det.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Är mina uppgifter säkra?
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <p class="faq-answer">Ditt underlag bearbetas lokalt och sparas krypterat. Inget skickas vidare utan att du vet om det.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Hur lång tid tar det för mig?
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <p class="faq-answer">Själva frågeflödet tar normalt under 15 minuter. Analysen sker automatiskt däremellan.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Vilka avdrag kontrollerar ni?
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <p class="faq-answer">Vi börjar med resor och dubbel bosättning, ränta och kapital, samt RUT/ROT — fler områden är på väg.</p>
+          </details>
+        </div>
+      </section>
+
+      <div class="final-cta">
+        <h2>Redo att se vad du missar?</h2>
+        <p>Det tar under 15 minuter, och du betalar bara om vi hittar något.</p>
+        <button class="btn btn-primary js-start-analysis" type="button">
+          Starta analys
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- UPLOAD / ANALYZING -->
+    <section id="view-upload" class="view" aria-labelledby="upload-heading">
+      <div class="view-heading">
+        <h2 id="upload-heading" tabindex="-1">Ladda upp ditt underlag</h2>
+        <p>Vi stödjer Skatteverkets förifyllda XML-fil eller PDF.</p>
+      </div>
+
+      <div class="card">
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Ladda upp fil, klicka eller släpp fil här">
+          <span class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M5 16v3a2 2 0 002 2h10a2 2 0 002-2v-3"/></svg>
+          </span>
+          <h3>Släpp filen här, eller klicka för att välja</h3>
+          <p>.xml eller .pdf från Skatteverket</p>
+          <button class="btn btn-secondary" id="btn-example" type="button">Använd exempeldata istället</button>
+          <input type="file" id="file-input" accept=".xml,.pdf" class="visually-hidden" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
+          <p class="file-hint">Filen bearbetas lokalt i din webbläsare/dator och skickas aldrig till en server.</p>
+        </div>
+
+        <div id="progress-panel" class="progress-steps" hidden aria-live="polite">
+          <div class="progress-step" data-step="1">
+            <span class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg></span>
+            <span>Läser in filstruktur</span>
+          </div>
+          <div class="progress-step" data-step="2">
+            <span class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg></span>
+            <span>Identifierar inkomst- och kapitaluppgifter</span>
+          </div>
+          <div class="progress-step" data-step="3">
+            <span class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg></span>
+            <span>Kontrollerar möjliga avdrag</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERVIEW -->
+    <section id="view-interview" class="view" aria-labelledby="interview-heading">
+      <h2 id="interview-heading" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;" tabindex="-1">Uppföljningsfrågor</h2>
+      <div class="card">
+        <div class="stepper">
+          <div class="stepper-track"><div class="stepper-fill" id="stepper-fill" style="width:25%"></div></div>
+          <span class="stepper-label" id="stepper-label" aria-live="polite">Fråga 1 av 4</span>
+        </div>
+
+        <div id="question-container"></div>
+
+        <div class="nav-row">
+          <button class="btn btn-secondary" id="btn-back" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>
+            Tillbaka
+          </button>
+          <button class="btn btn-primary" id="btn-next" type="button" disabled>Nästa</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORT -->
+    <section id="view-report" class="view" aria-labelledby="report-heading">
+      <h2 id="report-heading" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;" tabindex="-1">Din rapport</h2>
+
+      <div class="mockup-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v5h1"/></svg>
+        Detta är en visuell mockup. Beloppen är illustrativa exempel, inte riktiga skatteberäkningar.
+      </div>
+
+      <div class="summary-banner">
+        <div class="label">Möjlig besparing hittad</div>
+        <div class="amount" id="summary-amount">0 kr</div>
+        <div class="sub" id="summary-sub">Baserat på dina svar</div>
+      </div>
+
+      <div class="result-list" id="result-list"></div>
+
+      <div class="report-actions">
+        <button class="btn btn-secondary btn-block" id="btn-restart" type="button">Börja om</button>
+        <button class="btn btn-primary btn-block" id="btn-download" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
+          Ladda ner rapport (.md)
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    Deklarationskontrollen — designmockup, Fas 1 (Skatteverket-underlag). Ingen riktig data lämnar din enhet.
+  </footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
