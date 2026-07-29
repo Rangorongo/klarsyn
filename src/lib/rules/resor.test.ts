@@ -21,6 +21,11 @@ describe("resorRule.questions", () => {
     expect(questions.map((q) => q.id)).toEqual(["fardmedel"]);
   });
 
+  test("färdmedel is a fixed choice between bil and kollektivt", () => {
+    const [fardmedel] = resorRule.questions(withIncome, {});
+    expect(fardmedel.options).toEqual(["bil", "kollektivt"]);
+  });
+
   test("branches to car questions once färdmedel is bil", () => {
     const questions = resorRule.questions(withIncome, { fardmedel: "bil" });
     expect(questions.map((q) => q.id)).toEqual([

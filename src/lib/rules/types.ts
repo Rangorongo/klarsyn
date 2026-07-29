@@ -9,6 +9,9 @@ export interface Question {
   id: string;
   prompt: string;
   type: "text" | "number" | "boolean";
+  // Present when the answer must be one of a fixed set of values (rendered
+  // as a choice control rather than free text).
+  options?: string[];
 }
 
 export interface RuleResult {

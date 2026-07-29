@@ -9,14 +9,14 @@ const SCHABLON_ANDEL = 0.2;
 const KAPITALSKATT_ANDEL = 0.3;
 
 const FORSALJNINGSPRIS_QUESTION: Question = {
-  id: "forsaljningsprisOre",
+  id: "forsaljningsprisKr",
   prompt:
     "Vad var det sammanlagda försäljningspriset (kr) för din kryptovaluta under året?",
   type: "number",
 };
 
 const KAND_OMKOSTNADSBELOPP_QUESTION: Question = {
-  id: "kandOmkostnadsbeloppOre",
+  id: "kandOmkostnadsbeloppKr",
   prompt:
     "Vet du din faktiska anskaffningsutgift (kr)? Lämna tomt om du är osäker.",
   type: "number",
@@ -36,8 +36,8 @@ export const kryptoRule: Rule = {
   },
 
   compute(_underlag: Underlag, answers: AnswerMap): RuleResult {
-    const forsaljningsprisOre = answers.forsaljningsprisOre;
-    if (typeof forsaljningsprisOre !== "number") {
+    const forsaljningsprisKr = answers.forsaljningsprisKr;
+    if (typeof forsaljningsprisKr !== "number") {
       return {
         badge: "Kräver mer information",
         title: "Krypto — schablonmetoden",
@@ -49,9 +49,10 @@ export const kryptoRule: Rule = {
       };
     }
 
+    const forsaljningsprisOre = Math.round(forsaljningsprisKr * 100);
     const kandOmkostnadsbeloppOre =
-      typeof answers.kandOmkostnadsbeloppOre === "number"
-        ? answers.kandOmkostnadsbeloppOre
+      typeof answers.kandOmkostnadsbeloppKr === "number"
+        ? Math.round(answers.kandOmkostnadsbeloppKr * 100)
         : 0;
 
     const schablonOmkostnadOre = Math.round(

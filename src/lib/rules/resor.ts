@@ -13,6 +13,7 @@ const FARDMEDEL_QUESTION: Question = {
   id: "fardmedel",
   prompt: "Hur reser du normalt till arbetet?",
   type: "text",
+  options: ["bil", "kollektivt"],
 };
 
 const AVSTAND_QUESTION: Question = {

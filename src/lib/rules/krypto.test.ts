@@ -11,11 +11,11 @@ describe("kryptoRule.appliesTo", () => {
 });
 
 describe("kryptoRule.questions", () => {
-  test("asks for sale proceeds and known cost basis", () => {
+  test("asks for sale proceeds and known cost basis, in kr", () => {
     const questions = kryptoRule.questions(underlag, {});
     expect(questions.map((q) => q.id)).toEqual([
-      "forsaljningsprisOre",
-      "kandOmkostnadsbeloppOre",
+      "forsaljningsprisKr",
+      "kandOmkostnadsbeloppKr",
     ]);
   });
 });
@@ -27,19 +27,19 @@ describe("kryptoRule.compute", () => {
   });
 
   test("finds a tax saving when schablonmetoden beats an unknown/zero cost basis", () => {
-    // Sale: 10,000 kr (1,000,000 öre). Schablon cost basis = 20% = 200,000 öre.
+    // Sale: 10,000 kr. Schablon cost basis = 20% = 2,000 kr = 200,000 öre.
     // No known actual cost basis => extra deduction 200,000 öre.
     // Tax saving at 30% kapitalskatt = 60,000 öre (600 kr).
     const result = kryptoRule.compute(underlag, {
-      forsaljningsprisOre: 1_000_000,
+      forsaljningsprisKr: 10_000,
     });
     expect(result).toMatchObject({ amountOre: 60_000, needsReview: false });
   });
 
   test("finds no extra saving when the known cost basis already beats schablonmetoden", () => {
     const result = kryptoRule.compute(underlag, {
-      forsaljningsprisOre: 1_000_000,
-      kandOmkostnadsbeloppOre: 300_000,
+      forsaljningsprisKr: 10_000,
+      kandOmkostnadsbeloppKr: 3_000,
     });
     expect(result).toMatchObject({ amountOre: 0, needsReview: false });
   });
