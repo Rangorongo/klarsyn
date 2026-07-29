@@ -49,6 +49,9 @@ export default function InterviewPage() {
   const [lastQuestionId, setLastQuestionId] = useState<string | undefined>(
     undefined,
   );
+  const [isPaid, setIsPaid] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const next = useMemo(
     () => getNextQuestion(registry, underlag, answers),
@@ -75,10 +78,40 @@ export default function InterviewPage() {
       (sum, { result }) => sum + (result.amountOre ?? 0),
       0,
     );
+    // No cure, no pay — nothing found means nothing to unlock.
+    const isLocked = totalOre > 0 && !isPaid;
+    const feeOre = Math.round(totalOre * 0.25);
 
     function restart() {
       setAnswers({});
       setHistory([]);
+      setIsPaid(false);
+      setPaymentError(null);
+    }
+
+    async function handleUnlock() {
+      setIsPaying(true);
+      setPaymentError(null);
+      try {
+        const response = await fetch("/api/payments/mock/create", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            reportId: "local-session",
+            amountOre: feeOre,
+          }),
+        });
+        const body = await response.json();
+        if (!response.ok || body.status !== "PAID") {
+          setPaymentError("Betalningen kunde inte genomföras. Försök igen.");
+          return;
+        }
+        setIsPaid(true);
+      } catch {
+        setPaymentError("Kunde inte nå betaltjänsten. Försök igen.");
+      } finally {
+        setIsPaying(false);
+      }
     }
 
     return (
@@ -107,35 +140,68 @@ export default function InterviewPage() {
                       <h3>{result.title}</h3>
                     </div>
                     <span className="amount">
-                      {result.needsReview || result.amountOre === null
-                        ? "Kräver koll"
-                        : formatKr(result.amountOre)}
+                      {isLocked
+                        ? "🔒"
+                        : result.needsReview || result.amountOre === null
+                          ? "Kräver koll"
+                          : formatKr(result.amountOre)}
                     </span>
                   </div>
-                  <p className="motivation">{result.motivation}</p>
-                  <p className="source">Källa: {result.source}</p>
 
-                  {guide ? (
-                    <div className="guide-block">
-                      <h4>Så här deklarerar du</h4>
-                      <p className="guide-ruta">{guide.ruta}</p>
-                      <ol>
-                        {guide.steg.map((step, stepIndex) => (
-                          <li key={stepIndex}>{step}</li>
-                        ))}
-                      </ol>
-                      {guide.dokumentationskrav.length > 0 ? (
-                        <p className="guide-docs">
-                          Ha redo: {guide.dokumentationskrav.join(", ")}
-                        </p>
+                  {isLocked ? null : (
+                    <>
+                      <p className="motivation">{result.motivation}</p>
+                      <p className="source">Källa: {result.source}</p>
+
+                      {guide ? (
+                        <div className="guide-block">
+                          <h4>Så här deklarerar du</h4>
+                          <p className="guide-ruta">{guide.ruta}</p>
+                          <ol>
+                            {guide.steg.map((step, stepIndex) => (
+                              <li key={stepIndex}>{step}</li>
+                            ))}
+                          </ol>
+                          {guide.dokumentationskrav.length > 0 ? (
+                            <p className="guide-docs">
+                              Ha redo: {guide.dokumentationskrav.join(", ")}
+                            </p>
+                          ) : null}
+                        </div>
                       ) : null}
-                    </div>
-                  ) : null}
+                    </>
+                  )}
                 </div>
               );
             })
           )}
         </div>
+
+        {isLocked ? (
+          <div className="pricing-card mt-[var(--space-6)]">
+            <div className="pricing-headline">{formatKr(feeOre)}</div>
+            <p className="pricing-sub">
+              Lås upp fullständiga resultat och deklarationsguide — 25 % av det
+              vi hittat åt dig. Hittar vi inget betalar du inget.
+            </p>
+            {paymentError ? (
+              <p
+                role="alert"
+                className="mt-4 text-[color:var(--color-destructive)]"
+              >
+                {paymentError}
+              </p>
+            ) : null}
+            <button
+              className="btn btn-primary btn-block mt-[var(--space-5)]"
+              type="button"
+              disabled={isPaying}
+              onClick={handleUnlock}
+            >
+              {isPaying ? "Bearbetar..." : `Lås upp för ${formatKr(feeOre)}`}
+            </button>
+          </div>
+        ) : null}
 
         <div className="report-actions">
           <button
