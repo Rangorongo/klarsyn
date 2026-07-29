@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatKr } from "@/lib/format";
+import { generateGuide } from "@/lib/guide/generate";
 import type { Underlag } from "@/lib/ingestion/skatteverket/models";
 import { getNextQuestion } from "@/lib/questionnaire/engine";
 import { dubbelBosattningRule } from "@/lib/rules/dubbelBosattning";
@@ -36,10 +38,6 @@ function buildRegistry(): RuleRegistry {
   return registry;
 }
 
-function formatKr(ore: number): string {
-  return `${Math.round(ore / 100).toLocaleString("sv-SE")} kr`;
-}
-
 export default function InterviewPage() {
   const registry = useMemo(() => buildRegistry(), []);
   const [underlag] = useState<Underlag>(
@@ -67,10 +65,16 @@ export default function InterviewPage() {
   }
 
   if (!next.question) {
-    const results: RuleResult[] = registry
+    const results: { ruleId: string; result: RuleResult }[] = registry
       .getApplicable(underlag)
-      .map((rule) => rule.compute(underlag, answers));
-    const totalOre = results.reduce((sum, r) => sum + (r.amountOre ?? 0), 0);
+      .map((rule) => ({
+        ruleId: rule.id,
+        result: rule.compute(underlag, answers),
+      }));
+    const totalOre = results.reduce(
+      (sum, { result }) => sum + (result.amountOre ?? 0),
+      0,
+    );
 
     function restart() {
       setAnswers({});
@@ -93,23 +97,43 @@ export default function InterviewPage() {
               Inga uppenbara avdrag hittades utifrån dina svar den här gången.
             </div>
           ) : (
-            results.map((result, index) => (
-              <div className="result-item" key={index}>
-                <div className="result-item-head">
-                  <div>
-                    <span className="badge">{result.badge}</span>
-                    <h3>{result.title}</h3>
+            results.map(({ ruleId, result }, index) => {
+              const guide = generateGuide(ruleId, result);
+              return (
+                <div className="result-item" key={index}>
+                  <div className="result-item-head">
+                    <div>
+                      <span className="badge">{result.badge}</span>
+                      <h3>{result.title}</h3>
+                    </div>
+                    <span className="amount">
+                      {result.needsReview || result.amountOre === null
+                        ? "Kräver koll"
+                        : formatKr(result.amountOre)}
+                    </span>
                   </div>
-                  <span className="amount">
-                    {result.needsReview || result.amountOre === null
-                      ? "Kräver koll"
-                      : formatKr(result.amountOre)}
-                  </span>
+                  <p className="motivation">{result.motivation}</p>
+                  <p className="source">Källa: {result.source}</p>
+
+                  {guide ? (
+                    <div className="guide-block">
+                      <h4>Så här deklarerar du</h4>
+                      <p className="guide-ruta">{guide.ruta}</p>
+                      <ol>
+                        {guide.steg.map((step, stepIndex) => (
+                          <li key={stepIndex}>{step}</li>
+                        ))}
+                      </ol>
+                      {guide.dokumentationskrav.length > 0 ? (
+                        <p className="guide-docs">
+                          Ha redo: {guide.dokumentationskrav.join(", ")}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
-                <p className="motivation">{result.motivation}</p>
-                <p className="source">Källa: {result.source}</p>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
