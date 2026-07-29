@@ -1,0 +1,187 @@
+// Deklar — Prisma schema
+// See docs/superpowers/specs/2026-07-29-deklar-cloud-webapp-design.md for the design this implements.
+//
+// Sensitive payloads (Underlag, AnswerSet, uploaded file contents) are stored as
+// AES-256-GCM ciphertext blobs (see src/lib/storage/encryption.ts), never as plain
+// JSON columns. Personnummer is never stored at all (stripped at parse time by
+// src/lib/ingestion/skatteverket/redactPersonnummer.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js (NextAuth v5) required tables ---
+// Schema shape follows the official Auth.js Prisma adapter docs.
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  accounts Account[]
+  sessions Session[]
+
+  uploadedDocuments UploadedDocument[]
+  reports           Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Domain model ---
+
+enum DocumentKind {
+  SKATTEVERKET_XML
+  SKATTEVERKET_PDF
+}
+
+// Pointer to a blob-stored, encrypted upload. Raw file bytes never live in the DB.
+model UploadedDocument {
+  id           String       @id @default(cuid())
+  userId       String
+  kind         DocumentKind
+  blobKey      String // key/path into blob storage; ciphertext at rest
+  encryptionIv String
+  originalName String
+  createdAt    DateTime     @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  underlag Underlag?
+}
+
+// Normalized, parsed Skatteverket data ("Underlag"), stored as an encrypted JSON blob.
+// No personnummer field — stripped before this row is ever written.
+model Underlag {
+  id                 String   @id @default(cuid())
+  uploadedDocumentId String   @unique
+  ciphertext         String // AES-256-GCM ciphertext of the Zod-validated Underlag JSON
+  encryptionIv       String
+  createdAt          DateTime @default(now())
+
+  uploadedDocument UploadedDocument @relation(fields: [uploadedDocumentId], references: [id], onDelete: Cascade)
+  reports          Report[]
+}
+
+enum ReportStatus {
+  DRAFT // questionnaire in progress
+  COMPUTED // rule engine has run, results exist, may be behind paywall
+  PAID // payment confirmed, full results + guide unlocked
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  userId     String
+  underlagId String?
+  status     ReportStatus @default(DRAFT)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  underlag Underlag? @relation(fields: [underlagId], references: [id], onDelete: SetNull)
+
+  answerSet AnswerSet?
+  results   ReportResult[]
+  payment   Payment?
+}
+
+// Questionnaire answers for one report, stored as an encrypted JSON blob keyed by question id.
+model AnswerSet {
+  id           String   @id @default(cuid())
+  reportId     String   @unique
+  ciphertext   String
+  encryptionIv String
+  updatedAt    DateTime @updatedAt
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+// One row per rule that was evaluated for a report. Not raw PII (a derived figure +
+// motivation text), so left unencrypted for queryability, but still access-controlled
+// by session + report.status (teaser vs. full unlock enforced at the API layer).
+model ReportResult {
+  id          String   @id @default(cuid())
+  reportId    String
+  ruleId      String // e.g. "resor", "dubbelBosattning", "krypto"
+  badge       String
+  title       String
+  amountOre   Int? // null when needsReview is true; store öre (integer) not float SEK
+  motivation  String
+  source      String // citation into Skatteverket's regelverk
+  needsReview Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+enum PaymentProvider {
+  SWISH
+  KLARNA
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  PAID
+  DECLINED
+  FAILED
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  reportId    String          @unique
+  provider    PaymentProvider
+  providerRef String // provider's payment/order id, used for idempotent webhook handling
+  amountOre   Int
+  status      PaymentStatus   @default(CREATED)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerRef])
+}

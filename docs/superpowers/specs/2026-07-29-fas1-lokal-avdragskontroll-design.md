@@ -1,5 +1,7 @@
 # Deklarationskontrollen — Fas 1: Lokal avdragskontroll (design)
 
+> **⚠️ SUPERSEDED (2026-07-29).** Detta spec beskriver en lokal, gratis, offline CLI utan betalning — ett medvetet beslut vid den tidpunkten. Ägaren har sedan dess beslutat att gå direkt på en molnbaserad webbapp med betalning (Swish/Klarna) istället för att följa fasindelningen nedan. Se `docs/superpowers/specs/2026-07-29-deklar-cloud-webapp-design.md` för det aktuella, gällande designet. Detta dokument behålls oförändrat som historisk referens för det ursprungliga (övergivna) spåret.
+
 Status: godkänd, redo för implementationsplan
 Datum: 2026-07-29
 
