@@ -67,4 +67,15 @@ describe("POST /api/upload", () => {
     expect(typeof body.error).toBe("string");
     expect(body.error.length).toBeGreaterThan(0);
   });
+
+  test("rejects an oversized file with 413, without attempting to parse it", async () => {
+    const oversized = new Uint8Array(11 * 1024 * 1024); // 11 MiB
+    const file = new File([oversized], "deklaration.xml", {
+      type: "text/xml",
+    });
+
+    const response = await POST(postWithFile(file));
+
+    expect(response.status).toBe(413);
+  });
 });

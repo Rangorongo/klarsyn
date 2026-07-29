@@ -6,6 +6,11 @@ import {
 } from "@/lib/ingestion/skatteverket/pdfParser";
 import { parseSkatteverketXml } from "@/lib/ingestion/skatteverket/xmlParser";
 
+// Skatteverket's prefilled declarations are a few hundred KB at most — this
+// comfortably covers any real file while bounding the work an upload can
+// force (XML/PDF parsing cost scales with size).
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 function isXml(file: File): boolean {
   return file.type.includes("xml") || file.name.toLowerCase().endsWith(".xml");
 }
@@ -22,6 +27,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Ingen fil bifogades." },
       { status: 400 },
+    );
+  }
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return NextResponse.json(
+      { error: "Filen är för stor. Max 10 MB." },
+      { status: 413 },
     );
   }
 
