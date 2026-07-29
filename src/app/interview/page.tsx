@@ -8,10 +8,10 @@ import { kryptoRule } from "@/lib/rules/krypto";
 import { RuleRegistry } from "@/lib/rules/registry";
 import { resorRule } from "@/lib/rules/resor";
 import type { AnswerMap, RuleResult } from "@/lib/rules/types";
+import { readStoredUnderlag } from "@/lib/underlagStorage";
 
-// TODO(Phase 4 follow-up): replace with the Underlag produced by
-// xmlParser/pdfParser once /app/upload exists. Example data for now,
-// mirroring the mockup's "Använd exempeldata istället" affordance.
+// Used when the user chose "Använd exempeldata istället" on /upload, or
+// navigated here directly without going through it.
 const EXAMPLE_UNDERLAG: Underlag = {
   inkomstar: 2025,
   arbetsinkomstSummaOre: 35_000_000,
@@ -42,6 +42,9 @@ function formatKr(ore: number): string {
 
 export default function InterviewPage() {
   const registry = useMemo(() => buildRegistry(), []);
+  const [underlag] = useState<Underlag>(
+    () => readStoredUnderlag() ?? EXAMPLE_UNDERLAG,
+  );
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [history, setHistory] = useState<string[]>([]);
   const [draft, setDraft] = useState<string | boolean | undefined>(undefined);
@@ -50,8 +53,8 @@ export default function InterviewPage() {
   );
 
   const next = useMemo(
-    () => getNextQuestion(registry, EXAMPLE_UNDERLAG, answers),
-    [registry, answers],
+    () => getNextQuestion(registry, underlag, answers),
+    [registry, underlag, answers],
   );
   const questionId = next.question?.id;
 
@@ -65,8 +68,8 @@ export default function InterviewPage() {
 
   if (!next.question) {
     const results: RuleResult[] = registry
-      .getApplicable(EXAMPLE_UNDERLAG)
-      .map((rule) => rule.compute(EXAMPLE_UNDERLAG, answers));
+      .getApplicable(underlag)
+      .map((rule) => rule.compute(underlag, answers));
     const totalOre = results.reduce((sum, r) => sum + (r.amountOre ?? 0), 0);
 
     function restart() {

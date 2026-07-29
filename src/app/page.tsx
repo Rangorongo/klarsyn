@@ -12,7 +12,7 @@ export default function LandingPage() {
           Ladda upp din förifyllda deklaration från Skatteverket. Vi ställer
           några enkla följdfrågor och visar exakt vilka avdrag du kan ha missat.
         </p>
-        <Link href="/interview" className="btn btn-primary">
+        <Link href="/upload" className="btn btn-primary">
           Starta analys
           <svg
             width="18"
@@ -557,7 +557,7 @@ export default function LandingPage() {
       <div className="final-cta">
         <h2>Redo att se vad du missar?</h2>
         <p>Det tar under 15 minuter, och du betalar bara om vi hittar något.</p>
-        <Link href="/interview" className="btn btn-primary">
+        <Link href="/upload" className="btn btn-primary">
           Starta analys
           <svg
             width="18"
