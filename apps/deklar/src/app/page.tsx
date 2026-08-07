@@ -3,77 +3,107 @@ import Link from "next/link";
 export default function LandingPage() {
   return (
     <main id="main-content">
-      <div className="hero">
-        <h1 id="landing-heading" tabIndex={-1}>
-          Hitta pengarna du <span className="accent">missar</span> i din
-          deklaration
-        </h1>
-        <p className="lead">
-          Ladda upp din förifyllda deklaration från Skatteverket. Vi ställer
-          några enkla följdfrågor och visar exakt vilka avdrag du kan ha missat.
-        </p>
-        <Link href="/upload" className="btn btn-primary">
-          Starta analys
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M5 12h14" />
-            <path d="M13 6l6 6-6 6" />
-          </svg>
-        </Link>
+      <div className="hero-band">
+        <div className="hero-card">
+          <div className="hero-grid">
+            <div className="hero-content">
+              <span className="hero-eyebrow">För privatpersoner</span>
+              <h1 id="landing-heading" tabIndex={-1}>
+                Hitta pengarna du <span className="accent">missar</span> i din
+                deklaration
+              </h1>
+              <p className="lead">
+                Ladda upp din förifyllda deklaration från Skatteverket. Vi
+                ställer några enkla följdfrågor och visar exakt vilka avdrag du
+                kan ha missat.
+              </p>
+              <div className="hero-actions">
+                <Link href="/upload" className="btn btn-primary">
+                  Starta analys
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M13 6l6 6-6 6" />
+                  </svg>
+                </Link>
+              </div>
 
-        <div className="trust-row">
-          <span className="trust-item">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12l4 4 10-10" />
-            </svg>
-            Betala bara om vi hittar pengar
-          </span>
-          <span className="trust-item">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-            Klart på under 15 minuter
-          </span>
-          <span className="trust-item">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
-            </svg>
-            Krypterad lagring, GDPR-säkert
-          </span>
+              <div className="trust-row">
+                <span className="trust-item">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12l4 4 10-10" />
+                  </svg>
+                  Betala bara om vi hittar pengar
+                </span>
+                <span className="trust-item">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  Klart på under 15 minuter
+                </span>
+                <span className="trust-item">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
+                  </svg>
+                  Krypterad lagring, GDPR-säkert
+                </span>
+              </div>
+            </div>
+
+            <div className="hero-visual">
+              <div className="stat-panel">
+                <span className="stat-label">Illustrativt exempel</span>
+                <div className="stat-number">+12 400 kr</div>
+                <p className="stat-caption">
+                  Vad en analys skulle kunna hitta åt en typisk användare
+                </p>
+                <div className="mini-chart" aria-hidden="true">
+                  <span style={{ "--h": "48%" } as React.CSSProperties} />
+                  <span style={{ "--h": "88%" } as React.CSSProperties} />
+                  <span style={{ "--h": "62%" } as React.CSSProperties} />
+                </div>
+                <div className="mini-chart-labels">
+                  <span>Resor</span>
+                  <span>Dubbel</span>
+                  <span>Krypto</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -402,7 +432,7 @@ export default function LandingPage() {
         </div>
         <div className="card about-card">
           <p>
-            Deklar startade som ett sätt att sluta gissa sig fram varje vår.
+            Klarsyn startade som ett sätt att sluta gissa sig fram varje vår.
             Istället för att ringa banken eller fråga en kompis som &quot;kan
             sånt&quot;, ville vi ha ett verktyg som faktiskt går igenom
             underlaget systematiskt och visar var pengarna finns.

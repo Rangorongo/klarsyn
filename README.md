@@ -1,17 +1,23 @@
 # Klarsyn
 
 Klarsyn hjälper företag och privatpersoner hitta pengar de annars skulle
-missa — i tullfakturor och i skattedeklarationer. Ett bolag, två fristående
-produkter, samlade i ett monorepo.
+missa — i tullfakturor och i skattedeklarationer. Ett bolag, ett gemensamt
+varumärke, två spår.
 
-## Produkter
+`apps/deklar` är numera den enda webbplatsen/appen under Klarsyn-namnet: den
+betjänar både privatpersoner (`/`, självbetjänings-flödet i `/upload` →
+`/interview` → `/report`) och företag (`/foretag`, marknadsföring + kontakt
+för den mer manuella Tullsyn-tjänsten). All backend-logik från den tidigare
+Deklar-appen (auth, kryptering, regelmotor, AI, betalning) är oförändrad —
+bara namnet och designen är nytt.
+
+## Appar
 
 | App | Vad det är | Målgrupp | Stack | Status |
 |---|---|---|---|---|
-| [`apps/deklar`](apps/deklar) | Hittar skatteavdrag och skattemissar i den svenska inkomstdeklarationen | Privatpersoner | Next.js, TypeScript, Prisma/Postgres, Claude AI | Prototyp — se `apps/deklar/docs` för status |
-| [`apps/tullsyn`](apps/tullsyn) | Granskar tullfakturor mot EU:s TARIC-data för felklassificeringar, outnyttjade frihandelsavtal m.m. | Importföretag | Python, Google Gemini | Prototyp, körs som CLI-pipeline |
-| [`apps/tullsyn-web`](apps/tullsyn-web) | Marknadsföringssajt för Tullsyn | — | Statisk HTML/CSS/JS | Live-innehåll, ingen backend |
-| [`apps/klarsyn-web`](apps/klarsyn-web) | Gemensam varumärkessajt som länkar till båda produkterna | — | TBD | Under uppbyggnad |
+| [`apps/deklar`](apps/deklar) | Klarsyns webbplats: `/` + självbetjänings-flöde för privatpersoner, `/foretag` för företag | Privatpersoner + företag | Next.js, TypeScript, Prisma/Postgres, Claude AI | Prototyp — se `apps/deklar/docs` för status |
+| [`apps/tullsyn`](apps/tullsyn) | Granskar tullfakturor mot EU:s TARIC-data för felklassificeringar, outnyttjade frihandelsavtal m.m. — den faktiska tjänsten bakom `/foretag` | Importföretag | Python, Google Gemini | Prototyp, körs som CLI-pipeline, levereras manuellt |
+| [`apps/tullsyn-web`](apps/tullsyn-web) | Tullsyns tidigare fristående marknadssajt | — | Statisk HTML/CSS/JS | Ersatt av `apps/deklar/foretag` — se Kända uppföljningspunkter |
 
 ## Varför monorepo
 
@@ -50,7 +56,10 @@ Varje app kan också ha egen dokumentation i sin egen mapp (se
 
 ## Kända uppföljningspunkter
 
-- `apps/tullsyn-web` låg tidigare på GitHub Pages från sitt eget repo —
-  att fortsätta hosta den så kräver ett separat deploy-steg nu när den
-  ligger i en undermapp av monorepot, inte i repo-roten.
-- `apps/klarsyn-web` är ännu bara en platshållare.
+- `apps/tullsyn-web` är kvar i repot (historik bevarad) men dess innehåll
+  har ersatts av `apps/deklar/src/app/foretag`. Besluta om den ska tas bort
+  helt eller behållas som arkiv.
+- `/foretag`-sidans "Boka ett samtal"-knapp länkar till en platshållar-adress
+  (`hej@klarsyn.se`) — byt till en riktig adress innan sidan går live.
+- Ingen backend/databas för leads än — kontaktvägen för företag är just nu
+  bara en mailto-länk, inte ett formulär som sparas i databasen.
