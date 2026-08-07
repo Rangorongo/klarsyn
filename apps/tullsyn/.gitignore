@@ -1,0 +1,23 @@
+# Hemliga nycklar — får ALDRIG versionshanteras
+.env
+
+# Pythons kompileringscache
+__pycache__/
+*.pyc
+
+# Pytests cache-mapp
+.pytest_cache/
+
+# Genererade rapport-filer från pipelinen
+audit_*.csv
+audit_*.pdf
+revisionsprotokoll_*.pdf
+batch_sammanfattning.pdf
+
+# Lokala data- och cachefiler
+valutakurser.json
+tullsyn.db
+inkorg/
+
+# TARIC Excel-filer (~8 MB+) — laddas ner manuellt från CIRCABC, uppdateras månadsvis
+taric_data/

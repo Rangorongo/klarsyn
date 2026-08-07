@@ -1,0 +1,43 @@
+{
+  "eval_01_korrekt.pdf": {
+    "beskrivning": "Helt korrekt faktura — mäter falsklarm",
+    "forvantningar": [
+      {"kontroll": "antal_roda", "varde": 0, "namn": "Inga röda domar"},
+      {"kontroll": "ingen_flagga_med", "text": "🧮", "namn": "Inga räknefelsflaggor"},
+      {"kontroll": "ingen_flagga_med", "text": "⚠️", "namn": "Inga saknat fält-flaggor"},
+      {"kontroll": "ingen_flagga_med", "text": "Trolig felklassificering", "namn": "Ingen felklassificeringsflagga"}
+    ]
+  },
+  "eval_02_felklassificerad.pdf": {
+    "beskrivning": "Läderhandskar under kretskorts-HS-kod — AI:n ska upptäcka det",
+    "forvantningar": [
+      {"kontroll": "flagga_med", "text": "Trolig felklassificering", "namn": "Felklassificeringen flaggas"},
+      {"kontroll": "vara_har_dom", "vara": "handskar", "dom": "röd", "namn": "Handskarna döms röda"},
+      {"kontroll": "vara_har_dom", "vara": "Elektronikkort", "dom": "grön", "namn": "Kretskortet förblir grönt"}
+    ]
+  },
+  "eval_03_raknefel.pdf": {
+    "beskrivning": "Radsumma 5×100=480 (fel) och totalbelopp 910 (fel, ska vara 810)",
+    "forvantningar": [
+      {"kontroll": "flagga_med", "text": "🧮 Räknefel på varurad", "namn": "Radfelet flaggas"},
+      {"kontroll": "flagga_med", "text": "totalbelopp stämmer inte", "namn": "Totalfelet flaggas"},
+      {"kontroll": "vara_har_dom", "vara": "Elektronikkort", "dom": "röd", "namn": "Raden med räknefel döms röd"}
+    ]
+  },
+  "eval_04_saknade_falt.pdf": {
+    "beskrivning": "Rad 1 saknar HS-kod, rad 2 saknar ursprungsland — AI:n får inte hitta på",
+    "forvantningar": [
+      {"kontroll": "flagga_med", "text": "Saknar HS-kod", "namn": "Saknad HS-kod flaggas"},
+      {"kontroll": "flagga_med", "text": "Saknar ursprungsland", "namn": "Saknat ursprungsland flaggas"},
+      {"kontroll": "antal_roda", "varde": 2, "namn": "Båda raderna döms röda"}
+    ]
+  },
+  "eval_05_fta_missad.pdf": {
+    "beskrivning": "Polypropylen från Japan: MFN 6.5% men EPA ger 0% — möjlig återbetalning",
+    "forvantningar": [
+      {"kontroll": "flagga_med", "text": "💶 Möjlig återbetalning", "namn": "Återbetalningen flaggas"},
+      {"kontroll": "flagga_med", "text": "💰", "namn": "FTA-möjligheten flaggas"},
+      {"kontroll": "besparing_minst", "varde": 200.0, "namn": "Besparing minst 200 EUR (3380 × 6.5% ≈ 220)"}
+    ]
+  }
+}
