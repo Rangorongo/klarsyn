@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process &amp; regler — så fungerar tulldeklarationer och ändringar | Tullsyn</title>
+<meta name="description" content="Guide för importföretag: tulldeklarationstyper, standardtulldeklarationen, ansvar, Tullverkets ändringsprocess steg för steg och momsundantaget vid vidareförsäljning till EU. Skrivet av Tullsyn.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+.artikel { max-width: 760px; margin: 0 auto; }
+.artikel-hero { padding: 90px 0 40px; }
+.artikel h2 { margin-top: 72px; scroll-margin-top: 90px; }
+.artikel h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+.artikel p, .artikel li { font-size: 15.5px; color: var(--text-2); line-height: 1.75; }
+.artikel p { margin-bottom: 16px; }
+.artikel ul, .artikel ol { margin: 0 0 16px 22px; }
+.artikel li { margin-bottom: 8px; }
+.artikel strong { color: var(--text); font-weight: 600; }
+
+.toc {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px 28px; margin: 36px 0 0;
+}
+.toc-titel { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 14px; }
+.toc ol { margin: 0 0 0 20px; }
+.toc a { color: var(--text-2); text-decoration: none; font-size: 15px; transition: color 0.2s ease; }
+.toc a:hover { color: var(--accent); }
+
+.tullsyn-ruta {
+  background: rgba(47, 208, 140, 0.06); border: 1px solid rgba(47, 208, 140, 0.25);
+  border-radius: 14px; padding: 20px 24px; margin: 24px 0;
+}
+.tullsyn-ruta .ruta-titel {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+}
+.tullsyn-ruta p { margin: 0; font-size: 14.5px; }
+
+.kalla { font-size: 13px; color: var(--text-3); margin: 8px 0 0; }
+.kalla a { color: var(--text-3); text-decoration: underline; text-underline-offset: 3px; }
+.kalla a:hover { color: var(--accent); }
+
+.steg-lista { counter-reset: steg; list-style: none; margin-left: 0 !important; }
+.steg-lista li {
+  counter-increment: steg; position: relative;
+  padding: 0 0 20px 52px; margin: 0;
+}
+.steg-lista li::before {
+  content: counter(steg);
+  position: absolute; left: 0; top: 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(47, 208, 140, 0.1); border: 1px solid rgba(47, 208, 140, 0.35);
+  color: var(--accent); font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.steg-lista li::after {
+  content: ""; position: absolute; left: 16px; top: 36px; bottom: 4px;
+  width: 1px; background: var(--border);
+}
+.steg-lista li:last-child::after { display: none; }
+.steg-lista strong { display: block; margin-bottom: 4px; }
+
+.disclaimer {
+  border-left: 3px solid var(--gul); background: rgba(245, 185, 63, 0.06);
+  border-radius: 0 12px 12px 0; padding: 16px 22px; margin: 40px 0;
+  font-size: 13.5px; color: var(--text-2);
+}
+</style>
+</head>
+<body>
+
+<div class="glow glow-1" aria-hidden="true"></div>
+<div class="glow glow-2" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="index.html" class="wordmark">TULLSYN<span class="wordmark-dot"></span></a>
+    <nav class="header-nav">
+      <a href="index.html#sa-funkar-det">Så funkar det</a>
+      <a href="index.html#exempel">Exempelrapport</a>
+      <a href="index.html#pris">Pris</a>
+      <a href="process.html">Process &amp; regler</a>
+    </nav>
+    <a href="mailto:romeo.roudneshin@gmail.com?subject=Provgranskning%20%E2%80%94%20Tullsyn&body=Hej!%0A%0AVi%20vill%20testa%20en%20kostnadsfri%20provgranskning.%0A%0AF%C3%B6retag:%20%0AKontaktperson:%20%0A" class="btn btn-accent btn-small">Provgranskning</a>
+  </div>
+</header>
+
+<main>
+<div class="container artikel">
+
+<section class="artikel-hero">
+  <p class="kicker reveal">Process &amp; regler</p>
+  <h1 class="reveal" style="font-size: clamp(30px, 4.5vw, 44px);">Så fungerar tulldeklarationer — och så rättas fel</h1>
+  <p class="lead reveal">En guide för dig som importerar: vilka deklarationstyper som finns, vem som bär ansvaret, hur Tullverkets ändringsprocess fungerar steg för steg — och momsundantaget många missar. Skriven med Tullverkets egna sidor som källa, i klarspråk.</p>
+
+  <nav class="toc reveal" aria-label="Innehåll">
+    <p class="toc-titel">Innehåll</p>
+    <ol>
+      <li><a href="#deklarationstyper">Fyra sätt att deklarera import</a></li>
+      <li><a href="#standard">Standardtulldeklarationen — den vanligaste vägen</a></li>
+      <li><a href="#ansvar">Begrepp och ansvar: vem äger uppgifterna?</a></li>
+      <li><a href="#andring">Ändringsprocessen steg för steg</a></li>
+      <li><a href="#moms">Momsundantaget vid vidareförsäljning till EU</a></li>
+    </ol>
+  </nav>
+</section>
+
+<h2 id="deklarationstyper" class="reveal">1. Fyra sätt att deklarera import</h2>
+<p>Alla varor som importeras till EU måste deklareras. Tullverket erbjuder fyra vägar:</p>
+<ul>
+  <li><strong>Standardtulldeklaration</strong> — alla uppgifter lämnas på en gång, senast när varorna ankommer. Det enklaste och vanligaste sättet.</li>
+  <li><strong>Förenklad deklaration</strong> — färre uppgifter vid importtillfället; resten lämnas i en kompletterande deklaration senare.</li>
+  <li><strong>Registrering i deklarantens bokföring (EIDR)</strong> — kräver tillstånd; deklarationsuppgifterna registreras i företagets egen bokföring och kompletteras i efterhand.</li>
+  <li><strong>Lågvärdedeklaration</strong> — för vissa försändelser värda 150 euro eller mindre (cirka 1 700 kronor; gränsen är satt i euro i regelverket), med färre uppgifter.</li>
+</ul>
+<p>Värt att känna till är också <strong>aggregeringskravet</strong>: varuposter med samma varukod, ursprungsland, förfarandekod, förmånskod och Taric-villkor ska slås samman till en post — reglerna får inte kringgås genom att dela upp sändningen. Och <strong>centraliserad klarering</strong> är på väg in: företag ska kunna deklarera i en enda medlemsstat oavsett var i EU varorna finns.</p>
+
+<div class="tullsyn-ruta reveal">
+  <p class="ruta-titel">Vad betyder det för er?</p>
+  <p>Oavsett vilken deklarationstyp ni använder är det samma grunduppgifter som avgör vad ni betalar: varukoden (HS), ursprungslandet och tullvärdet. Ett fel i de uppgifterna följer med i varje deklaration ni lämnar — månad efter månad. Det är precis de uppgifterna Tullsyn granskar.</p>
+</div>
+<p class="kalla">Källa: <a href="https://www.tullverket.se/foretag/internationellhandel/importeravaror/deklareravarorvidimport/olikatyperavtulldeklarationerforimport.4.153f8c8c16ffad23c22bff.html" target="_blank" rel="noopener">Tullverket — Olika typer av tulldeklarationer för import</a></p>
+
+<h2 id="standard" class="reveal">2. Standardtulldeklarationen — den vanligaste vägen</h2>
+<p>Standardtulldeklarationen är den vanligaste deklarationsformen när varor förs in till EU. Den ska innehålla alla uppgifter som krävs för det tullförfarande varorna deklareras till, och det finns två sätt att lämna den:</p>
+<ul>
+  <li><strong>I förväg</strong> — deklarationen skickas in innan varorna kommer och aktiveras vid ankomsten. Vissa uppgifter kan kompletteras senare, men aldrig efter att varorna ankommit.</li>
+  <li><strong>Vid ankomst</strong> — en komplett deklaration där samtliga uppgifter skickas in på en och samma gång, när varorna anlänt och ska frigöras.</li>
+</ul>
+<p>Efter inlämning kan deklarationen behöva ändras — och hur det går till beror helt på vilken <strong>status</strong> den har hunnit få (mer om det i avsnitt 4). Systemet hanterar också särskilda situationer som momsbefriad import, moms via IOSS-registrerade e-handelsplattformar och reservrutiner vid driftstörningar.</p>
+
+<div class="tullsyn-ruta reveal">
+  <p class="ruta-titel">Vad betyder det för er?</p>
+  <p>Deklarationen bygger på fakturaunderlaget. Om leverantörens faktura har fel HS-kod, fel ursprungsland eller belopp som inte stämmer, vandrar felet rakt in i tulldeklarationen — och ni betalar därefter. Att granska fakturorna är därför det effektivaste sättet att hitta fel i deklarationerna.</p>
+</div>
+<p class="kalla">Källa: <a href="https://www.tullverket.se/foretag/internationellhandel/importeravaror/deklareravarorvidimport/olikatyperavtulldeklarationerforimport/standardtulldeklarationimport.4.a62602917de14e43271e0d.html" target="_blank" rel="noopener">Tullverket — Standardtulldeklaration import</a></p>
+
+<h2 id="ansvar" class="reveal">3. Begrepp och ansvar: vem äger uppgifterna?</h2>
+<p>I den nya importprocessen har rollerna tydliga definitioner:</p>
+<ul>
+  <li><strong>Deklarant i tulldeklarationen</strong> — den som lämnar in deklarationen i eget namn, eller den i vars namn den inges. Det är deklaranten som ansvarar för uppgifterna.</li>
+  <li><strong>Deklarant i anmälan om varors ankomst</strong> — den som anmäler att varorna ankommit när deklarationen lämnats i förväg.</li>
+  <li><strong>Lagerhavare</strong> — den som lagrar varorna (tillfälligt lager eller tullager) och får besked från Tullverket när varorna frigjorts och kan lämnas ut.</li>
+  <li><strong>Tullidentitet och MRN</strong> — innan deklarationen godtagits har den ett referensnummer kallat tullidentitet; när den godtas övergår det i ett MRN-nummer som följer ärendet.</li>
+</ul>
+
+<div class="tullsyn-ruta reveal">
+  <p class="ruta-titel">Vad betyder det för er?</p>
+  <p>Den viktigaste insikten: även när en speditör eller ett ombud sköter det praktiska är det <strong>deklaranten</strong> — ofta ert företag — som ansvarar för att uppgifterna stämmer. Fel som ingen upptäcker är era fel och era pengar. Ingen annan i kedjan har ekonomiskt intresse av att leta efter dem åt er.</p>
+</div>
+<p class="kalla">Källa: <a href="https://www.tullverket.se/foretag/internationellhandel/importeravaror/deklareravarorvidimport/olikatyperavtulldeklarationerforimport/standardtulldeklarationimport/begreppochansvaridennyaimportprocessen.4.422c8052175b1d82769203b.html" target="_blank" rel="noopener">Tullverket — Begrepp och ansvar i den nya importprocessen</a></p>
+
+<h2 id="andring" class="reveal">4. Ändringsprocessen steg för steg</h2>
+<p>Upptäcker ni ett fel i en inskickad deklaration går det att rätta — och vägen beror på deklarationens status:</p>
+<ul>
+  <li>Status <strong>ingiven</strong>: uppgifterna kan fortfarande rättas direkt.</li>
+  <li>Status <strong>godtagen</strong>: en ansökan om ändring skickas in.</li>
+  <li>Status <strong>frigjord</strong> (varorna utlämnade): den fullständiga ändringsprocessen nedan gäller — det är här de flesta fel upptäcks, ofta långt i efterhand.</li>
+  <li>Status <strong>ogiltigförklarad</strong>: kan inte ändras alls.</li>
+</ul>
+<p>Så här ser processen ut när en frigjord standardtulldeklaration ska ändras:</p>
+
+<ol class="steg-lista reveal">
+  <li><strong>Ansökan upprättas</strong>Deklaranten skickar digitalt in en ansökan om ändring — samma format och antal uppgifter som en tulldeklaration, kopplad via samma LRN-nummer.</li>
+  <li><strong>Teknisk kontroll</strong>Tullverket kontrollerar att uppgifterna är tekniskt korrekta och bekräftar mottagandet.</li>
+  <li><strong>Koppling till ärendet</strong>Systemet verifierar deklarationens status och kontrollerar uppgifterna mot tulltaxan och giltiga tillstånd. Fel — t.ex. en varukod som inte finns i tulltaxan — returneras som "mottagen med fel" och kan åtgärdas.</li>
+  <li><strong>Status ingiven</strong>Deklaranten får ett digitalt besked om att ansökan är ingiven.</li>
+  <li><strong>Handläggning</strong>Tullverket prövar om ändringen kan tillåtas. Bara den senast inkomna ändringsansökan hanteras. Vid behov begärs styrkande handlingar in.</li>
+  <li><strong>Komplettering</strong>Handlingar skickas in via Tullverkets e-tjänst Uppladdning handling.</li>
+  <li><strong>Beslut</strong>Tillåts ändringen fattas ett nytt beslut om tull, skatt och avgifter baserat på de rättade uppgifterna. Vid tänkt avslag skickas först ett övervägande — deklaranten har då 30 dagar på sig att yttra sig.</li>
+  <li><strong>Besked till deklaranten</strong>Nytt beslut, övervägande eller avslagsbeslut tas emot digitalt.</li>
+  <li><strong>Information om ändringen</strong>Berörda parter, som lagerhavare, informeras när ändringen är genomförd.</li>
+</ol>
+
+<div class="tullsyn-ruta reveal">
+  <p class="ruta-titel">Vad betyder det för er?</p>
+  <p>Det här är kärnan i vad Tullsyn levererar underlag för. Processen är digital och väletablerad — men den kräver att ni vet <strong>exakt vilken uppgift som är fel, vad det korrekta värdet är och kan styrka det</strong>. Vårt revisionsprotokoll ger just det: numrerade fynd med feltyp, belopp, beräkning och referens, redo att omsättas i en ändringsansökan. Och eftersom överbetald tull kan återkrävas upp till tre år bakåt kan även gamla deklarationer vara värda att granska.</p>
+</div>
+<p class="kalla">Källa: <a href="https://www.tullverket.se/foretag/internationellhandel/importeravaror/deklareravarorvidimport/olikatyperavtulldeklarationerforimport/standardtulldeklarationimport/processenvidandringavenstandardtulldeklaration.4.1595e959179a7cfd5c79d.html" target="_blank" rel="noopener">Tullverket — Processen vid ändring av en standardtulldeklaration</a></p>
+
+<h2 id="moms" class="reveal">5. Momsundantaget vid vidareförsäljning till EU</h2>
+<p>Importerar ni varor som ska säljas eller skickas vidare till ett annat EU-land? Då kan importen vara <strong>undantagen svensk importmoms</strong> — momsen redovisas i stället av mottagaren i det andra landet. I deklarationen används förfarandekoder som börjar med <strong>42</strong> (import med direkt vidareleverans) eller <strong>63</strong> (återimport).</p>
+<p>Kraven för att använda undantaget:</p>
+<ul>
+  <li>Deklaranten (eller uppdragsgivaren, om ett indirekt ombud står som deklarant) är momsregistrerad i Sverige.</li>
+  <li>Mottagaren är momsregistrerad i det andra EU-landet.</li>
+  <li>Vidareleveransen kan styrkas — t.ex. med köpeavtal med leveransadress i det andra landet, transportavtal eller frakthandling.</li>
+</ul>
+<p>Saknas svensk momsregistrering finns två alternativ: betala importmomsen vid övergång till fri omsättning (förfarandekod som börjar med 40), eller transitera varan till mottagarlandet. I deklarationen anges bådas momsregistreringsnummer med särskilda koder (FR1 för det svenska, FR2 för mottagarens).</p>
+
+<div class="tullsyn-ruta reveal">
+  <p class="ruta-titel">Vad betyder det för er?</p>
+  <p>Det här är ett typexempel på regler som få mindre importföretag känner till. Säljer ni vidare till EU-kunder men betalar full svensk importmoms i onödan binder ni likviditet helt i onödan — och omvänt: används koderna fel riskerar ni efterkrav. Momskonsekvensen av varje tullfel ingår alltid i Tullsyns granskning.</p>
+</div>
+<p class="kalla">Källa: <a href="https://www.tullverket.se/foretag/internationellhandel/importeravaror/omtullarochavgifter/importmoms/undantagfranmervardesskattvidimportavvarorsomskavidaresandastillettannateuland.4.1595e959179a7cfd5c711e0.html" target="_blank" rel="noopener">Tullverket — Undantag från mervärdesskatt vid import av varor som ska vidaresändas till ett annat EU-land</a></p>
+
+<div class="disclaimer reveal">
+  Den här sidan är en förenklad sammanfattning skriven av Tullsyn, med Tullverkets webbplats som källa (hämtad juli 2026). Regler ändras — tullverket.se gäller alltid före denna sida, och innehållet är inte juridisk rådgivning.
+</div>
+
+<section class="center" style="padding: 20px 0 100px;">
+  <h2 class="reveal" style="margin-bottom: 0;">Misstänker ni fel i era deklarationer?</h2>
+  <p class="section-lead reveal">Skicka tre fakturor — vi visar vad vi hittar, kostnadsfritt.</p>
+  <a href="mailto:romeo.roudneshin@gmail.com?subject=Provgranskning%20%E2%80%94%20Tullsyn&body=Hej!%0A%0AVi%20vill%20testa%20en%20kostnadsfri%20provgranskning.%0A%0AF%C3%B6retag:%20%0AKontaktperson:%20%0A" class="btn btn-accent reveal">Starta provgranskningen</a>
+</section>
+
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span class="wordmark">TULLSYN<span class="wordmark-dot"></span></span>
+    <span>Automatiserad tullgranskning mot EU:s tulltaxa · Stockholm</span>
+    <a href="mailto:romeo.roudneshin@gmail.com">romeo.roudneshin@gmail.com</a>
+    <span>© Tullsyn 2026</span>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
