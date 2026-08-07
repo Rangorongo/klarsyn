@@ -1,10 +1,16 @@
-name: CI
+name: Deklar CI
 
 on:
   push:
     branches: [main]
+    paths: ["apps/deklar/**", ".github/workflows/deklar-ci.yml"]
   pull_request:
     branches: [main]
+    paths: ["apps/deklar/**", ".github/workflows/deklar-ci.yml"]
+
+defaults:
+  run:
+    working-directory: apps/deklar
 
 jobs:
   test:
@@ -16,6 +22,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: apps/deklar/package-lock.json
 
       - run: npm ci
       - run: npx prisma generate

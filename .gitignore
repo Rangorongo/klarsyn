@@ -1,4 +1,13 @@
-# Python
+# Monorepo-wide fallback patterns. Each app under apps/ also carries its
+# own .gitignore for stack-specific paths (node_modules, __pycache__, etc.)
+# — see apps/deklar/.gitignore and apps/tullsyn/.gitignore.
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Python (fallback)
 __pycache__/
 *.pyc
 .venv/
@@ -7,43 +16,11 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 
-# Project data (never committed — contains sensitive tax/financial data)
-data/
-*.local
-
-# Environment
-.env
-.env*.local
-.env.local
+# Node (fallback)
+node_modules/
 
 # OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-# Node / Next.js
-/node_modules
-/.pnp
-.pnp.*
-/coverage
-/.next/
-/out/
-/build
-*.pem
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-.vercel
-*.tsbuildinfo
-next-env.d.ts
-
-# Prisma
-/prisma/*.db
-
-# Playwright
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/

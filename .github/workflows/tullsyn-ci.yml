@@ -1,15 +1,20 @@
-# Kör hela testsviten automatiskt vid varje push till GitHub.
-# windows-latest används för att Arial-fonterna ska finnas (PDF-testerna).
-# TARIC-integrationstestet skippas automatiskt (taric_data/ finns inte i repot)
-# och ingen GOOGLE_API_KEY behövs (inga tester gör riktiga AI-anrop).
-name: Tester
+name: Tullsyn CI
 
 on:
   push:
+    branches: [main]
+    paths: ["apps/tullsyn/**", ".github/workflows/tullsyn-ci.yml"]
   pull_request:
+    branches: [main]
+    paths: ["apps/tullsyn/**", ".github/workflows/tullsyn-ci.yml"]
+
+defaults:
+  run:
+    working-directory: apps/tullsyn
 
 jobs:
   pytest:
+    # windows-latest: PDF-testerna behöver Arial-fonterna som finns där.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
