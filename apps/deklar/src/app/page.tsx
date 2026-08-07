@@ -163,14 +163,56 @@ export default function LandingPage() {
               strokeLinejoin="round"
               aria-hidden="true"
             >
+              <circle cx="7" cy="7" r="2.5" />
+              <circle cx="17" cy="17" r="2.5" />
+              <path d="M18 6L6 18" />
+            </svg>
+          </span>
+          <h3>Ränta & kapital</h3>
+          <p>
+            Skattereduktion för ränteutgifter — 30 % upp till 100 000 kr, 21 %
+            därutöver, om det inte redan är förifyllt.
+          </p>
+        </div>
+        <div className="feature-card">
+          <span className="icon-badge">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <path d="M4 11l8-6 8 6" />
               <path d="M6 10v9h12v-9" />
             </svg>
           </span>
-          <h3>Fler avdragsområden på väg</h3>
+          <h3>RUT & ROT</h3>
           <p>
-            Vi börjar smalt och bygger ut kontrollen med fler avdragstyper
-            allteftersom.
+            Kontroll att du fått avdraget vid betalning, och att du inte
+            missat att ansöka i efterhand.
+          </p>
+        </div>
+        <div className="feature-card">
+          <span className="icon-badge">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z" />
+            </svg>
+          </span>
+          <h3>Gåvor till välgörenhet</h3>
+          <p>
+            25 % skattereduktion på gåvor till godkända mottagare — lätt att
+            missa eftersom den inte alltid syns automatiskt.
           </p>
         </div>
       </div>
@@ -444,7 +486,7 @@ export default function LandingPage() {
           </p>
           <div className="about-stats">
             <div className="about-stat">
-              <div className="value">3</div>
+              <div className="value">6</div>
               <div className="label">avdragsområden vid start</div>
             </div>
             <div className="about-stat">
@@ -577,8 +619,8 @@ export default function LandingPage() {
               </svg>
             </summary>
             <p className="faq-answer">
-              Vi börjar med resor, dubbel bosättning och krypto — fler områden
-              är på väg.
+              Resor och dubbel bosättning, krypto, ränta och kapital, RUT/ROT
+              samt gåvor till välgörenhet — fler områden är på väg.
             </p>
           </details>
         </div>

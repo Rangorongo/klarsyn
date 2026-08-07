@@ -1,7 +1,10 @@
 import type { RuleResult } from "@/lib/rules/types";
 import { buildDubbelBosattningGuide } from "./templates/dubbelBosattning";
+import { buildGavorGuide } from "./templates/gavor";
 import { buildKryptoGuide } from "./templates/krypto";
+import { buildRantaGuide } from "./templates/ranta";
 import { buildResorGuide } from "./templates/resor";
+import { buildRutRotGuide } from "./templates/rutRot";
 import type { GuideStep } from "./types";
 
 const TEMPLATE_BY_RULE_ID: Record<
@@ -11,6 +14,9 @@ const TEMPLATE_BY_RULE_ID: Record<
   resor: buildResorGuide,
   dubbelBosattning: buildDubbelBosattningGuide,
   krypto: buildKryptoGuide,
+  ranta: buildRantaGuide,
+  rutRot: buildRutRotGuide,
+  gavor: buildGavorGuide,
 };
 
 export function generateGuide(

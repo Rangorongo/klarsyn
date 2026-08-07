@@ -6,9 +6,12 @@ import { generateGuide } from "@/lib/guide/generate";
 import type { Underlag } from "@/lib/ingestion/skatteverket/models";
 import { getNextQuestion } from "@/lib/questionnaire/engine";
 import { dubbelBosattningRule } from "@/lib/rules/dubbelBosattning";
+import { gavorRule } from "@/lib/rules/gavor";
 import { kryptoRule } from "@/lib/rules/krypto";
+import { rantaRule } from "@/lib/rules/ranta";
 import { RuleRegistry } from "@/lib/rules/registry";
 import { resorRule } from "@/lib/rules/resor";
+import { rutRotRule } from "@/lib/rules/rutRot";
 import type { AnswerMap, RuleResult } from "@/lib/rules/types";
 import { readStoredUnderlag } from "@/lib/underlagStorage";
 
@@ -23,6 +26,9 @@ const RULE_CATEGORY_LABEL: Record<string, string> = {
   resor: "Resor till jobbet",
   dubbelBosattning: "Dubbel bosättning",
   krypto: "Krypto",
+  ranta: "Ränta & kapital",
+  rutRot: "RUT & ROT",
+  gavor: "Gåvor till välgörenhet",
 };
 
 const OPTION_LABEL: Record<string, string> = {
@@ -35,6 +41,9 @@ function buildRegistry(): RuleRegistry {
   registry.register(resorRule);
   registry.register(dubbelBosattningRule);
   registry.register(kryptoRule);
+  registry.register(rantaRule);
+  registry.register(rutRotRule);
+  registry.register(gavorRule);
   return registry;
 }
 
