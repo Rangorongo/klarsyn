@@ -31,7 +31,20 @@ describe("resorRule.questions", () => {
     expect(questions.map((q) => q.id)).toEqual([
       "fardmedel",
       "avstandKm",
+      "spararTid",
       "arbetsdagarPerAr",
+    ]);
+  });
+
+  test("skips arbetsdagarPerAr once spararTid is false (already disqualified)", () => {
+    const questions = resorRule.questions(withIncome, {
+      fardmedel: "bil",
+      spararTid: false,
+    });
+    expect(questions.map((q) => q.id)).toEqual([
+      "fardmedel",
+      "avstandKm",
+      "spararTid",
     ]);
   });
 
@@ -52,13 +65,41 @@ describe("resorRule.compute — bil", () => {
     expect(result).toMatchObject({ amountOre: null, needsReview: true });
   });
 
+  test("needs review when spararTid is missing (avstånd answered)", () => {
+    const result = resorRule.compute(withIncome, {
+      fardmedel: "bil",
+      avstandKm: 20,
+    });
+    expect(result).toMatchObject({ amountOre: null, needsReview: true });
+  });
+
+  test("disqualified when spararTid is false, regardless of distance", () => {
+    const result = resorRule.compute(withIncome, {
+      fardmedel: "bil",
+      avstandKm: 20,
+      spararTid: false,
+    });
+    expect(result).toMatchObject({ amountOre: 0, needsReview: false });
+    expect(result.badge).toBe("Uppfyller inte kraven");
+  });
+
   test("gives no deduction under the 5km minimum", () => {
     const result = resorRule.compute(withIncome, {
       fardmedel: "bil",
       avstandKm: 4,
+      spararTid: true,
       arbetsdagarPerAr: 200,
     });
     expect(result).toMatchObject({ amountOre: 0, needsReview: false });
+  });
+
+  test("needs review when arbetsdagarPerAr is missing but spararTid is true", () => {
+    const result = resorRule.compute(withIncome, {
+      fardmedel: "bil",
+      avstandKm: 20,
+      spararTid: true,
+    });
+    expect(result).toMatchObject({ amountOre: null, needsReview: true });
   });
 
   test("computes the deduction above the threshold", () => {
@@ -67,6 +108,7 @@ describe("resorRule.compute — bil", () => {
     const result = resorRule.compute(withIncome, {
       fardmedel: "bil",
       avstandKm: 20,
+      spararTid: true,
       arbetsdagarPerAr: 200,
     });
     expect(result).toMatchObject({
@@ -80,6 +122,7 @@ describe("resorRule.compute — bil", () => {
     const result = resorRule.compute(withIncome, {
       fardmedel: "bil",
       avstandKm: 5,
+      spararTid: true,
       arbetsdagarPerAr: 50,
     });
     expect(result).toMatchObject({ amountOre: 0, needsReview: false });

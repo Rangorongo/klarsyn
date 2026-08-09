@@ -1,10 +1,11 @@
 import type { Underlag } from "@/lib/ingestion/skatteverket/models";
 import type { AnswerMap, Question, Rule, RuleResult } from "./types";
 
-// NOTE: threshold and mileage rate are the widely-cited figures for reseavdrag
-// (arbetsresor) at design time. Not yet verified against Skatteverket's
-// current published rules for the relevant inkomstår — see open question #4
-// in docs/superpowers/specs/2026-07-29-deklar-cloud-webapp-design.md.
+// Verified against Skatteverket for deklaration 2026 (inkomstår 2025):
+// https://www.skatteverket.se/privat/skatter/bilochtrafik/avdragforresortillochfranarbetet.4.3810a01c150939e893f25603.html
+// MAINTENANCE: Riksdagen has already decided TROSKEL_ORE rises to 15,000 kr
+// from and with inkomstår 2026 (deklaration 2027) — update Underlag.inkomstar
+// gating here once that filing season is live.
 const TROSKEL_ORE = 11_000_00;
 const MIL_ERSATTNING_ORE = 25_00;
 const MINSTA_AVSTAND_KM = 5;
@@ -20,6 +21,15 @@ const AVSTAND_QUESTION: Question = {
   id: "avstandKm",
   prompt: "Hur långt är det en väg (km) mellan bostad och arbete?",
   type: "number",
+};
+
+// Required for a car-based deduction alongside the 5km minimum — easy to
+// miss, so asked explicitly rather than assumed.
+const SPARAR_TID_QUESTION: Question = {
+  id: "spararTid",
+  prompt:
+    "Sparar du minst två timmar per dag på att köra bil jämfört med att åka kollektivt?",
+  type: "boolean",
 };
 
 const ARBETSDAGAR_QUESTION: Question = {
@@ -73,7 +83,16 @@ export const resorRule: Rule = {
 
   questions(_underlag: Underlag, previousAnswers: AnswerMap): Question[] {
     if (previousAnswers.fardmedel === "bil") {
-      return [FARDMEDEL_QUESTION, AVSTAND_QUESTION, ARBETSDAGAR_QUESTION];
+      if (previousAnswers.spararTid === false) {
+        // Disqualified regardless of days traveled — no need to ask.
+        return [FARDMEDEL_QUESTION, AVSTAND_QUESTION, SPARAR_TID_QUESTION];
+      }
+      return [
+        FARDMEDEL_QUESTION,
+        AVSTAND_QUESTION,
+        SPARAR_TID_QUESTION,
+        ARBETSDAGAR_QUESTION,
+      ];
     }
     if (previousAnswers.fardmedel === "kollektivt") {
       return [FARDMEDEL_QUESTION, KOLLEKTIVT_KOSTNAD_QUESTION];
@@ -84,15 +103,28 @@ export const resorRule: Rule = {
   compute(_underlag: Underlag, answers: AnswerMap): RuleResult {
     if (answers.fardmedel === "bil") {
       const avstandKm = answers.avstandKm;
-      const arbetsdagarPerAr = answers.arbetsdagarPerAr;
-      if (
-        typeof avstandKm !== "number" ||
-        typeof arbetsdagarPerAr !== "number"
-      ) {
+      const spararTid = answers.spararTid;
+      if (typeof avstandKm !== "number" || typeof spararTid !== "boolean") {
         return needsReview();
       }
       if (avstandKm < MINSTA_AVSTAND_KM) {
         return computed(0);
+      }
+      if (!spararTid) {
+        return {
+          badge: "Uppfyller inte kraven",
+          title: "Reseavdrag",
+          amountOre: 0,
+          motivation:
+            "Bilresor ger bara avdrag om du sparar minst två timmar per dag jämfört med kollektivtrafik — det uppfyller du inte enligt dina svar.",
+          source: "Skatteverket — Resor till och från arbetet",
+          needsReview: false,
+        };
+      }
+
+      const arbetsdagarPerAr = answers.arbetsdagarPerAr;
+      if (typeof arbetsdagarPerAr !== "number") {
+        return needsReview();
       }
       const totalMil = (avstandKm * 2 * arbetsdagarPerAr) / 10;
       const totalKostnadOre = Math.round(totalMil * MIL_ERSATTNING_ORE);

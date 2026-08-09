@@ -33,8 +33,8 @@ describe("getNextQuestion", () => {
       fardmedel: "bil",
     });
 
-    // resor: fardmedel + avstandKm + arbetsdagarPerAr (3) + dubbelBosattning: harDubbelBosattning (1)
-    expect(result.totalCount).toBe(4);
+    // resor: fardmedel + avstandKm + spararTid + arbetsdagarPerAr (4) + dubbelBosattning: harDubbelBosattning (1)
+    expect(result.totalCount).toBe(5);
     expect(result.answeredCount).toBe(1);
     expect(result.ruleId).toBe("resor");
     expect(result.question?.id).toBe("avstandKm");
@@ -44,6 +44,7 @@ describe("getNextQuestion", () => {
     const result = getNextQuestion(buildRegistry(), underlagWithIncome, {
       fardmedel: "bil",
       avstandKm: 20,
+      spararTid: true,
       arbetsdagarPerAr: 200,
     });
 
@@ -55,6 +56,7 @@ describe("getNextQuestion", () => {
     const result = getNextQuestion(buildRegistry(), underlagWithIncome, {
       fardmedel: "bil",
       avstandKm: 20,
+      spararTid: true,
       arbetsdagarPerAr: 200,
       harDubbelBosattning: false,
     });
