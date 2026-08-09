@@ -1,29 +1,41 @@
+import { formatKr } from "@/lib/format";
 import type { RuleResult } from "@/lib/rules/types";
 import type { GuideStep } from "../types";
 
-// NOTE: ruta reference is the commonly-cited box for "Tillfälligt arbete,
-// dubbel bosättning och hemresor" — unverified against a real, current
-// Skatteverket-published blankett, same open question noted in
-// rules/dubbelBosattning.ts.
-const RUTA = "Ruta 2.2 — Tillfälligt arbete, dubbel bosättning och hemresor";
+const OMRADE = "Tillfälligt arbete och dubbel bosättning";
 
 export function buildDubbelBosattningGuide(
   result: RuleResult,
 ): GuideStep | null {
-  if (!result.needsReview) {
+  if (result.needsReview) {
+    return {
+      ruta: OMRADE,
+      dokumentationskrav: [
+        "Hyreskontrakt eller motsvarande för den tillfälliga bostaden",
+        "Underlag som visar avståndet till folkbokföringsadressen",
+        "Anställningsbevis eller motsvarande som styrker varför arbetet kräver den tillfälliga bostaden",
+      ],
+      steg: [
+        "Dina svar räckte inte för att beräkna avdraget automatiskt — kontrollera manuellt mot Skatteverkets villkor för dubbel bosättning.",
+      ],
+    };
+  }
+
+  if (result.amountOre === null || result.amountOre <= 0) {
     return null;
   }
 
   return {
-    ruta: RUTA,
+    ruta: OMRADE,
     dokumentationskrav: [
-      "Hyreskontrakt eller motsvarande för den tillfälliga bostaden",
-      "Underlag som visar avståndet till familjens bostad",
-      "Anställningsbevis eller motsvarande som styrker varför arbetet kräver den tillfälliga bostaden",
+      "Kvitton/hyresavier som styrker din faktiska boendekostnad",
+      "Kvitton eller biljetter för dina hemresor",
+      "Underlag som visar avstånd och när den dubbla bosättningen började",
     ],
     steg: [
-      "Dubbel bosättning kan inte beräknas automatiskt — kontrollera manuellt mot Skatteverkets villkor, eller kontakta en handläggare vid osäkerhet.",
-      `Om du är berättigad, fyll i ${RUTA.toLowerCase()} med ditt underlag.`,
+      `Fyll i avdrag för ${OMRADE.toLowerCase()} i din inkomstdeklaration.`,
+      `Uppskattat avdrag: ${formatKr(result.amountOre)} — ${result.motivation}`,
+      "Spara alla kvitton i minst ett år ifall Skatteverket begär att se dem.",
     ],
   };
 }
