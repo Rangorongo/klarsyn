@@ -11,16 +11,12 @@ import { formatKr } from "@/lib/format";
 import { generateGuide } from "@/lib/guide/generate";
 import type { Underlag } from "@/lib/ingestion/skatteverket/models";
 import { getNextQuestion } from "@/lib/questionnaire/engine";
-import { dubbelBosattningRule } from "@/lib/rules/dubbelBosattning";
-import { gavorRule } from "@/lib/rules/gavor";
-import { gronTeknikRule } from "@/lib/rules/gronTeknik";
-import { kapitalforlustRule } from "@/lib/rules/kapitalforlust";
-import { kryptoRule } from "@/lib/rules/krypto";
-import { rantaRule } from "@/lib/rules/ranta";
-import { RuleRegistry } from "@/lib/rules/registry";
-import { resorRule } from "@/lib/rules/resor";
-import { rutRotRule } from "@/lib/rules/rutRot";
-import type { AnswerMap, RuleResult } from "@/lib/rules/types";
+import {
+  buildFullRegistry,
+  computeAllResults,
+  RULE_CATEGORY_LABEL,
+} from "@/lib/rules/allRules";
+import type { AnswerMap } from "@/lib/rules/types";
 import { readStoredUnderlag } from "@/lib/underlagStorage";
 
 // Used when the user chose "Använd exempeldata istället" on /upload, or
@@ -30,37 +26,13 @@ const EXAMPLE_UNDERLAG: Underlag = {
   arbetsinkomstSummaOre: 35_000_000,
 };
 
-const RULE_CATEGORY_LABEL: Record<string, string> = {
-  resor: "Resor till jobbet",
-  dubbelBosattning: "Dubbel bosättning",
-  krypto: "Krypto",
-  ranta: "Ränta & kapital",
-  rutRot: "RUT & ROT",
-  gavor: "Gåvor till välgörenhet",
-  kapitalforlust: "Kapitalförlust — aktier och fonder",
-  gronTeknik: "Grön teknik",
-};
-
 const OPTION_LABEL: Record<string, string> = {
   bil: "Bil",
   kollektivt: "Kollektivtrafik",
 };
 
-function buildRegistry(): RuleRegistry {
-  const registry = new RuleRegistry();
-  registry.register(resorRule);
-  registry.register(dubbelBosattningRule);
-  registry.register(kryptoRule);
-  registry.register(rantaRule);
-  registry.register(rutRotRule);
-  registry.register(gavorRule);
-  registry.register(kapitalforlustRule);
-  registry.register(gronTeknikRule);
-  return registry;
-}
-
 export default function InterviewPage() {
-  const registry = useMemo(() => buildRegistry(), []);
+  const registry = useMemo(() => buildFullRegistry(), []);
   const [underlag] = useState<Underlag>(
     () => readStoredUnderlag() ?? EXAMPLE_UNDERLAG,
   );
@@ -151,16 +123,7 @@ export default function InterviewPage() {
       );
     }
 
-    const results: { ruleId: string; result: RuleResult }[] = registry
-      .getApplicable(underlag)
-      .map((rule) => ({
-        ruleId: rule.id,
-        result: rule.compute(underlag, answers),
-      }));
-    const totalOre = results.reduce(
-      (sum, { result }) => sum + (result.amountOre ?? 0),
-      0,
-    );
+    const { results, totalOre } = computeAllResults(underlag, answers);
     // No cure, no pay — nothing found means nothing to unlock.
     const isLocked = totalOre > 0 && !isPaid;
     const feeOre = Math.round(totalOre * 0.25);
