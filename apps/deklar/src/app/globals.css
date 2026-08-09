@@ -742,6 +742,26 @@ main {
   color: var(--color-primary-dark);
 }
 
+.attest-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin: var(--space-5) 0;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+.attest-checkbox input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+}
+
 .field-group {
   margin-bottom: var(--space-4);
 }

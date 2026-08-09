@@ -1,6 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  clearAnswerTrail,
+  readAnswerTrail,
+  RULE_SET_VERSION,
+  writeAnswerTrail,
+} from "@/lib/answerTrail";
 import { formatKr } from "@/lib/format";
 import { generateGuide } from "@/lib/guide/generate";
 import type { Underlag } from "@/lib/ingestion/skatteverket/models";
@@ -61,6 +67,8 @@ export default function InterviewPage() {
   const [isPaid, setIsPaid] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [hasAttested, setHasAttested] = useState(false);
+  const [attestChecked, setAttestChecked] = useState(false);
 
   const next = useMemo(
     () => getNextQuestion(registry, underlag, answers),
@@ -77,6 +85,66 @@ export default function InterviewPage() {
   }
 
   if (!next.question) {
+    if (!hasAttested) {
+      function confirmAttestation() {
+        writeAnswerTrail({
+          attestedAt: new Date().toISOString(),
+          ruleSetVersion: RULE_SET_VERSION,
+          underlag,
+          answers,
+        });
+        setHasAttested(true);
+      }
+
+      return (
+        <main id="main-content">
+          <h2 className="sr-only">Bekräfta dina uppgifter</h2>
+          <div className="card">
+            <div className="view-heading">
+              <h2>Bekräfta innan du ser resultatet</h2>
+              <p>
+                Du har svarat på alla frågor. Innan vi visar vad vi hittat
+                behöver du bekräfta att uppgifterna stämmer — vi sparar dina
+                svar tillsammans med tidpunkten som ditt underlag om
+                Skatteverket senare skulle ifrågasätta något.
+              </p>
+            </div>
+
+            <label className="attest-checkbox">
+              <input
+                type="checkbox"
+                checked={attestChecked}
+                onChange={(event) => setAttestChecked(event.target.checked)}
+              />
+              <span>
+                Jag intygar att uppgifterna jag lämnat är korrekta och
+                fullständiga efter bästa förmåga.
+              </span>
+            </label>
+
+            <div className="nav-row">
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={handleBack}
+                disabled={history.length === 0}
+              >
+                Tillbaka
+              </button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={!attestChecked}
+                onClick={confirmAttestation}
+              >
+                Bekräfta och se resultat
+              </button>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
     const results: { ruleId: string; result: RuleResult }[] = registry
       .getApplicable(underlag)
       .map((rule) => ({
@@ -96,6 +164,25 @@ export default function InterviewPage() {
       setHistory([]);
       setIsPaid(false);
       setPaymentError(null);
+      setHasAttested(false);
+      setAttestChecked(false);
+      clearAnswerTrail();
+    }
+
+    function downloadAnswerTrail() {
+      const trail = readAnswerTrail();
+      if (!trail) return;
+      const blob = new Blob([JSON.stringify(trail, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `klarsyn-svarsspar-${trail.attestedAt.slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     }
 
     async function handleUnlock() {
@@ -219,6 +306,13 @@ export default function InterviewPage() {
             onClick={restart}
           >
             Börja om
+          </button>
+          <button
+            className="btn btn-secondary btn-block"
+            type="button"
+            onClick={downloadAnswerTrail}
+          >
+            Ladda ner ditt svarsspår
           </button>
         </div>
       </main>
