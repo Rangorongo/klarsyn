@@ -1,4 +1,10 @@
 import Link from "next/link";
+import { GranskningIllustration } from "@/components/GranskningIllustration";
+import {
+  ImpactSimulator,
+  NoPayDemo,
+  SavingsRangeGauge,
+} from "@/components/ImpactWidgets";
 
 export default function LandingPage() {
   return (
@@ -436,6 +442,22 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="section" aria-labelledby="impact-heading">
+        <div className="section-heading">
+          <span className="section-eyebrow">Se effekten</span>
+          <h2 id="impact-heading">Vad det skulle kunna betyda</h2>
+          <p>
+            Klarsyn är precis lanserat — de här siffrorna är simuleringar och
+            exempel, inte historik.
+          </p>
+        </div>
+        <div className="impact-grid">
+          <ImpactSimulator />
+          <SavingsRangeGauge />
+          <NoPayDemo />
+        </div>
+      </section>
+
       <section className="section" aria-labelledby="pricing-heading">
         <div className="section-heading">
           <span className="section-eyebrow">Modellen</span>
@@ -513,31 +535,36 @@ export default function LandingPage() {
             Byggd för att lösa ett problem vi själva hade
           </h2>
         </div>
-        <div className="card about-card">
-          <p>
-            Klarsyn startade som ett sätt att sluta gissa sig fram varje vår.
-            Istället för att ringa banken eller fråga en kompis som &quot;kan
-            sånt&quot;, ville vi ha ett verktyg som faktiskt går igenom
-            underlaget systematiskt och visar var pengarna finns.
-          </p>
-          <p>
-            Målet är att göra samma typ av avdragskoll som en rådgivare skulle
-            göra — tillgänglig för alla, utan krångel och utan att du behöver
-            kunna skattelagstiftning.
-          </p>
-          <div className="about-stats">
-            <div className="about-stat">
-              <div className="value">8</div>
-              <div className="label">avdragsområden vid start</div>
+        <div className="hero-grid">
+          <div className="card about-card">
+            <p>
+              Klarsyn startade som ett sätt att sluta gissa sig fram varje
+              vår. Istället för att ringa banken eller fråga en kompis som
+              &quot;kan sånt&quot;, ville vi ha ett verktyg som faktiskt går
+              igenom underlaget systematiskt och visar var pengarna finns.
+            </p>
+            <p>
+              Målet är att göra samma typ av avdragskoll som en rådgivare
+              skulle göra — tillgänglig för alla, utan krångel och utan att
+              du behöver kunna skattelagstiftning.
+            </p>
+            <div className="about-stats">
+              <div className="about-stat">
+                <div className="value">8</div>
+                <div className="label">avdragsområden vid start</div>
+              </div>
+              <div className="about-stat">
+                <div className="value">&lt;15 min</div>
+                <div className="label">din arbetsinsats</div>
+              </div>
+              <div className="about-stat">
+                <div className="value">0 kr</div>
+                <div className="label">om vi inget hittar</div>
+              </div>
             </div>
-            <div className="about-stat">
-              <div className="value">&lt;15 min</div>
-              <div className="label">din arbetsinsats</div>
-            </div>
-            <div className="about-stat">
-              <div className="value">0 kr</div>
-              <div className="label">om vi inget hittar</div>
-            </div>
+          </div>
+          <div className="illustration-wrap">
+            <GranskningIllustration />
           </div>
         </div>
       </section>
