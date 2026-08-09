@@ -1,10 +1,35 @@
 import Link from "next/link";
+import { AnimatedStatPanel } from "@/components/AnimatedStatPanel";
 import { GranskningIllustration } from "@/components/GranskningIllustration";
 import {
   ImpactSimulator,
   NoPayDemo,
   SavingsRangeGauge,
 } from "@/components/ImpactWidgets";
+
+const RESOR_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 16l1.5-5A2 2 0 017.4 9.5h9.2a2 2 0 011.9 1.5L20 16" />
+    <rect x="3" y="16" width="18" height="4" rx="1.5" />
+    <circle cx="7.5" cy="20" r="1.3" />
+    <circle cx="16.5" cy="20" r="1.3" />
+  </svg>
+);
+
+const DUBBEL_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 11l8-6 8 6" />
+    <path d="M6 10v9h12v-9" />
+  </svg>
+);
+
+const KRYPTO_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="7" cy="7" r="2.5" />
+    <circle cx="17" cy="17" r="2.5" />
+    <path d="M18 6L6 18" />
+  </svg>
+);
 
 export default function LandingPage() {
   return (
@@ -91,23 +116,16 @@ export default function LandingPage() {
             </div>
 
             <div className="hero-visual">
-              <div className="stat-panel">
-                <span className="stat-label">Illustrativt exempel</span>
-                <div className="stat-number">+12 400 kr</div>
-                <p className="stat-caption">
-                  Vad en analys skulle kunna hitta åt en typisk användare
-                </p>
-                <div className="mini-chart" aria-hidden="true">
-                  <span style={{ "--h": "48%" } as React.CSSProperties} />
-                  <span style={{ "--h": "88%" } as React.CSSProperties} />
-                  <span style={{ "--h": "62%" } as React.CSSProperties} />
-                </div>
-                <div className="mini-chart-labels">
-                  <span>Resor</span>
-                  <span>Dubbel</span>
-                  <span>Krypto</span>
-                </div>
-              </div>
+              <AnimatedStatPanel
+                label="Illustrativt exempel"
+                totalOre={12_400_00}
+                caption="Vad en analys skulle kunna hitta åt en typisk användare"
+                findings={[
+                  { icon: RESOR_ICON, label: "Resor", amountOre: 4_200_00 },
+                  { icon: DUBBEL_ICON, label: "Dubbel bosättning", amountOre: 3_800_00 },
+                  { icon: KRYPTO_ICON, label: "Krypto", amountOre: 4_400_00 },
+                ]}
+              />
             </div>
           </div>
         </div>

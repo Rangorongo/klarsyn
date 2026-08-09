@@ -1,5 +1,25 @@
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
+import { AnimatedStatPanel } from "@/components/AnimatedStatPanel";
+
+const KLASSIFICERING_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <path d="M8 9h8M8 13h5" />
+  </svg>
+);
+
+const AVTAL_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 12h18M3 6h18M3 18h18" />
+  </svg>
+);
+
+const FRAKT_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 11l8-6 8 6" />
+    <path d="M6 10v9h12v-9" />
+  </svg>
+);
 
 export const metadata: Metadata = {
   title: "Klarsyn för företag — Era tullfakturor döljer pengar",
@@ -84,23 +104,16 @@ export default function ForetagPage() {
             </div>
 
             <div className="hero-visual">
-              <div className="stat-panel">
-                <span className="stat-label">Illustrativt exempel</span>
-                <div className="stat-number">+84 000 kr</div>
-                <p className="stat-caption">
-                  Vad en granskning skulle kunna hitta i en fakturaportfölj
-                </p>
-                <div className="mini-chart" aria-hidden="true">
-                  <span style={{ "--h": "70%" } as CSSProperties} />
-                  <span style={{ "--h": "45%" } as CSSProperties} />
-                  <span style={{ "--h": "90%" } as CSSProperties} />
-                </div>
-                <div className="mini-chart-labels">
-                  <span>Klass.</span>
-                  <span>Avtal</span>
-                  <span>Frakt</span>
-                </div>
-              </div>
+              <AnimatedStatPanel
+                label="Illustrativt exempel"
+                totalOre={84_000_00}
+                caption="Vad en granskning skulle kunna hitta i en fakturaportfölj"
+                findings={[
+                  { icon: KLASSIFICERING_ICON, label: "Felklassificering", amountOre: 32_000_00 },
+                  { icon: AVTAL_ICON, label: "Outnyttjat avtal", amountOre: 20_000_00 },
+                  { icon: FRAKT_ICON, label: "Fraktfel", amountOre: 32_000_00 },
+                ]}
+              />
             </div>
           </div>
         </div>
