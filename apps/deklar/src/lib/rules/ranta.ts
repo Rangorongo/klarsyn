@@ -5,7 +5,16 @@ import type { AnswerMap, Question, Rule, RuleResult } from "./types";
 // (deklaration 2026): 30% tax reduction on underskott av kapital up to
 // 100,000 kr, 21% on the portion above that.
 // https://www.skatteverket.se/privat/skatter/arbeteochinkomst/skattereduktioner.4.3810a01c150939e893f1a17e.html
-const TROSKEL_ORE = 100_000_00;
+//
+// This threshold and rate are shared with rules/kapitalforlust.ts — ränta
+// and kvoterad aktie-/fondförlust both feed the SAME underskott av kapital
+// pool in reality, one combined 100,000 kr threshold, not one each. We
+// still compute them as two independent rules (simpler, matches this app's
+// one-rule-one-question-flow architecture) — see the caveat in
+// kapitalforlust.ts's motivation text about combined totals near/above the
+// threshold.
+export const UNDERSKOTT_TROSKEL_ORE = 100_000_00;
+const TROSKEL_ORE = UNDERSKOTT_TROSKEL_ORE;
 const RATE_LOW = 0.3;
 const RATE_HIGH = 0.21;
 
@@ -31,12 +40,15 @@ const REDAN_FORIFYLLT_QUESTION: Question = {
   type: "boolean",
 };
 
-function skattereduktion(ranteutgifterOre: number): number {
-  if (ranteutgifterOre <= TROSKEL_ORE) {
-    return Math.round(ranteutgifterOre * RATE_LOW);
+// Shared with kapitalforlust.ts — see the note on UNDERSKOTT_TROSKEL_ORE.
+export function underskottAvKapitalSkattereduktion(
+  underskottOre: number,
+): number {
+  if (underskottOre <= TROSKEL_ORE) {
+    return Math.round(underskottOre * RATE_LOW);
   }
   return Math.round(
-    TROSKEL_ORE * RATE_LOW + (ranteutgifterOre - TROSKEL_ORE) * RATE_HIGH,
+    TROSKEL_ORE * RATE_LOW + (underskottOre - TROSKEL_ORE) * RATE_HIGH,
   );
 }
 
@@ -110,7 +122,7 @@ export const rantaRule: Rule = {
     }
 
     const ranteutgifterOre = Math.round(ranteutgifterKr * 100);
-    const amountOre = skattereduktion(ranteutgifterOre);
+    const amountOre = underskottAvKapitalSkattereduktion(ranteutgifterOre);
     return {
       badge: amountOre > 0 ? "Avdrag hittat" : "Inget att hitta",
       title: "Skattereduktion för ränteutgifter",

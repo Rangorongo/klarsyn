@@ -1,6 +1,7 @@
 import type { RuleResult } from "@/lib/rules/types";
 import { buildDubbelBosattningGuide } from "./templates/dubbelBosattning";
 import { buildGavorGuide } from "./templates/gavor";
+import { buildKapitalforlustGuide } from "./templates/kapitalforlust";
 import { buildKryptoGuide } from "./templates/krypto";
 import { buildRantaGuide } from "./templates/ranta";
 import { buildResorGuide } from "./templates/resor";
@@ -17,6 +18,7 @@ const TEMPLATE_BY_RULE_ID: Record<
   ranta: buildRantaGuide,
   rutRot: buildRutRotGuide,
   gavor: buildGavorGuide,
+  kapitalforlust: buildKapitalforlustGuide,
 };
 
 export function generateGuide(
