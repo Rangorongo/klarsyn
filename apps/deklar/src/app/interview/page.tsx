@@ -13,6 +13,7 @@ import type { Underlag } from "@/lib/ingestion/skatteverket/models";
 import { getNextQuestion } from "@/lib/questionnaire/engine";
 import { dubbelBosattningRule } from "@/lib/rules/dubbelBosattning";
 import { gavorRule } from "@/lib/rules/gavor";
+import { gronTeknikRule } from "@/lib/rules/gronTeknik";
 import { kapitalforlustRule } from "@/lib/rules/kapitalforlust";
 import { kryptoRule } from "@/lib/rules/krypto";
 import { rantaRule } from "@/lib/rules/ranta";
@@ -37,6 +38,7 @@ const RULE_CATEGORY_LABEL: Record<string, string> = {
   rutRot: "RUT & ROT",
   gavor: "Gåvor till välgörenhet",
   kapitalforlust: "Kapitalförlust — aktier och fonder",
+  gronTeknik: "Grön teknik",
 };
 
 const OPTION_LABEL: Record<string, string> = {
@@ -53,6 +55,7 @@ function buildRegistry(): RuleRegistry {
   registry.register(rutRotRule);
   registry.register(gavorRule);
   registry.register(kapitalforlustRule);
+  registry.register(gronTeknikRule);
   return registry;
 }
 
