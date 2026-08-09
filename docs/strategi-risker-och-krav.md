@@ -184,14 +184,82 @@ dokumentation — t.ex. en avslutande checklista i rapporten: "Innan du
 skickar in, se till att du har sparat: [lista baserat på vilka avdrag som
 hittades]."
 
-## 7. Prioriterad åtgärdslista (kort sikt)
+## 7. Betalningsbindning — hur säkerställa att kunden faktiskt betalar
+
+Grundproblemet har två sidor, och det finns ingen lösning som tar bort
+båda riskerna helt — bara ett val om vilken risk ni hellre bär:
+
+- **Betala vid upplåsning (nuvarande arkitektur):** ni får betalt direkt,
+  men om Skatteverket sen nekar avdraget har ni tagit betalt för något
+  som inte blev av — återbetalningsrisk.
+- **Betala efter att kunden fått sin återbäring:** ni slipper
+  återbetalningsrisken, men får istället ett indrivningsproblem — inget
+  hindrar kunden från att bara inte höra av sig när pengarna väl kommit.
+
+### Tre alternativ, i stigande bindningsgrad (och komplexitet)
+
+**1. Enkel påminnelse + avtalstext (billigast att bygga)**
+En tydlig text kunden godkänner ("Jag åtar mig att betala 25 % inom 14
+dagar efter att jag mottagit min skatteåterbäring") plus ett automatiskt
+mejl som skickas ut runt när Skatteverkets utbetalningar brukar komma.
+Skapar ingen teknisk bindning — bara ett avtal ni i värsta fall kan
+skicka till inkasso. Svagast mot kunder som medvetet undviker att betala.
+
+**2. Sparat kort, dras automatiskt senare (rekommenderas som första steg)**
+Vid attesteringssteget: be kunden lägga till ett kort (via t.ex. Stripe)
+med uttryckligt samtycke till en framtida debitering "upp till X % av
+vad vi hittar åt dig". Ni sparar bara en token, inga kortuppgifter rör
+er egen server. När det är dags att ta betalt drar ni beloppet
+automatiskt utan att kunden behöver göra något aktivt. Vanlig modell
+hos brittiska skatteåterbäringsbolag (RIFT, Tax Rebate Services) — de
+säkrar betalningsmedlet innan de lämnar över resultatet.
+- **Varför inte Swish här:** Swish kräver att kunden aktivt godkänner
+  *varje* betalning i sin app i realtid — går inte att dra pengar i
+  efterhand utan att kunden öppnar appen och godkänner. Bra känsla när
+  kunden själv initierar, men fungerar inte som bakomliggande automatisk
+  debitering.
+
+**3. BankID-signerat avtal + Autogiro (starkast bindning, mest jobb)**
+Kunden legitimerar sig med BankID och skriver samtidigt under ett
+riktigt, tidsstämplat avtal *och* ett Autogiro-medgivande (kontobaserad
+dragning utan kortauktorisationers 7–30-dagarsgräns — viktigt eftersom
+Skatteverkets utbetalning kan dröja månader). Ger en verklig juridisk och
+praktisk grund om någon vägrar betala. Kräver en BankID-leverantör (t.ex.
+Criipto, Scrive, Signicat) och Autogiro-anslutning via banken — **båda
+blockerade tills bolaget är registrerat**, precis som Swish/Klarna.
+
+### Att researcha snarare än anta
+Vissa liknande tjänster utomlands låter myndigheten betala ut pengarna
+*direkt till ombudets konto*, som sedan drar sin avgift och
+vidarebefordrar resten. Värt att kontrollera om Skatteverket
+överhuvudtaget tillåter att en återbäring styrs om till tredje part —
+sannolikt nej (klassisk bedrägerivektor, skattekontot är hårt knutet
+till det egna bankkontot), men bör verifieras snarare än antas. Om det
+visar sig möjligt löser det hela problemet på en gång.
+
+### Rekommendation
+Börja med **alternativ 2** (sparat kort + samtycke) när en riktig
+betalningsleverantör finns på plats — rimlig komplexitet, ger en verklig
+indrivningsmekanism utan att vänta på bolagsregistrering och
+BankID-avtal. Lägg alternativ 3 som en naturlig uppgradering längre fram,
+i samma veva som Swish/Klarna sätts upp för bolaget.
+
+## 8. Prioriterad åtgärdslista (kort sikt)
 
 1. Bestäm bolagsform — prata med jurist/revisor.
 2. Skriv användarvillkor + integritetspolicy (kan börja som utkast innan
-   juridisk granskning).
-3. Lägg till intygande-steg + svarsspår med tidsstämpel i intervjuflödet.
-4. Bestäm hur ni hanterar "betalat men avdraget nekades senare" innan
-   skarp betalning aktiveras.
+   juridisk granskning) — inkludera betalningsvillkoren från punkt 7.
+3. ~~Lägg till intygande-steg + svarsspår med tidsstämpel i intervjuflödet.~~
+   **Klart** (2026-08-09) — se `apps/deklar/src/lib/answerTrail.ts` och
+   attesteringssteget i `apps/deklar/src/app/interview/page.tsx`. Kvar:
+   flytta från klientsidans sessionStorage till riktig krypterad
+   serverlagring (Fas 7, `AnswerSet`-modellen finns redan i
+   `prisma/schema.prisma`).
+4. Bestäm betalningsmodell (se punkt 7) — sparat kort rekommenderas som
+   första steg — innan skarp betalning aktiveras.
 5. Sätt upp en årlig rutin för att verifiera alla skatteregler inför varje
    ny deklarationssäsong.
 6. Verifiera regulatoriskt läge för skatterådgivning som tjänst.
+7. Verifiera om Skatteverket tillåter omdirigerad återbäring till tredje
+   part (se punkt 7) — skulle förenkla betalningsproblemet radikalt om
+   möjligt.
