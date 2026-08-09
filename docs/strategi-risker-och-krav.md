@@ -41,11 +41,16 @@ för diskussion, inte facit.
 ### Skatteregler att verifiera (löpande arbete, inte en engångsgrej)
 | Regel | Status |
 |---|---|
-| Ränta, RUT/ROT, Gåvor, Resor | ✅ Verifierade mot Skatteverket (2026-08-09) |
+| Ränta, RUT/ROT, Gåvor, Resor, Dubbel bosättning, Kapitalförlust, Grön teknik | ✅ Verifierade mot Skatteverket (2026-08-09) — alla 8 regler beräknar nu ett riktigt belopp |
 | Krypto (schablonmetoden) | ✅ Stabil, väletablerad regel |
-| Dubbel bosättning | ⚠️ Beräknar inget belopp än, bara "kräver manuell kontroll" — avsiktligt minimalt eller en lucka? |
-| Kapitalförlust aktier/fonder | Medvetet inte byggd — Skatteverket sköter oftast detta automatiskt |
 | **Alla regler, varje år** | Belopp/trösklar ändras årligen (redan sett: reseavdragets tröskel höjs till 15 000 kr från inkomstår 2026). **Sätt upp en årlig rutin** för att kontrollera samtliga siffror mot Skatteverkets nya belopp inför varje deklarationssäsong. |
+
+**Mätbar träffsäkerhet:** `apps/deklar/src/lib/rules/eval.test.ts` kör hela
+regelmotorn mot 13 realistiska scenarier med handräknat facit (samma metod
+som Tullsyns `eval/`-mapp) — ger ett konkret, spårbart tal istället för en
+känsla, och fångar regressioner även om en enskild regels egna tester
+fortfarande passerar.
+
 - Ingen riktig Skatteverket-fil (XML/PDF) har någonsin validerats mot
   parsern — bygger fortfarande bara på publik schemadokumentation.
 
