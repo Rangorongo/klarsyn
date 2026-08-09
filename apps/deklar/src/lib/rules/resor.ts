@@ -28,8 +28,12 @@ const ARBETSDAGAR_QUESTION: Question = {
   type: "number",
 };
 
+// Answered in kr — converted to öre in compute(), matching rules/krypto.ts.
+// (Previously named kollektivtKostnadOre and used without conversion — a
+// ~100x under-computation bug, fixed together with the same mistake in the
+// newer ranta/rutRot/gavor rules.)
 const KOLLEKTIVT_KOSTNAD_QUESTION: Question = {
-  id: "kollektivtKostnadOre",
+  id: "kollektivtKostnadKr",
   prompt:
     "Vad kostade dina resor med kollektivtrafik till och från arbetet totalt under året (kr)?",
   type: "number",
@@ -96,10 +100,11 @@ export const resorRule: Rule = {
     }
 
     if (answers.fardmedel === "kollektivt") {
-      const kollektivtKostnadOre = answers.kollektivtKostnadOre;
-      if (typeof kollektivtKostnadOre !== "number") {
+      const kollektivtKostnadKr = answers.kollektivtKostnadKr;
+      if (typeof kollektivtKostnadKr !== "number") {
         return needsReview();
       }
+      const kollektivtKostnadOre = Math.round(kollektivtKostnadKr * 100);
       return computed(Math.max(0, kollektivtKostnadOre - TROSKEL_ORE));
     }
 

@@ -41,7 +41,7 @@ describe("resorRule.questions", () => {
     });
     expect(questions.map((q) => q.id)).toEqual([
       "fardmedel",
-      "kollektivtKostnadOre",
+      "kollektivtKostnadKr",
     ]);
   });
 });
@@ -95,7 +95,7 @@ describe("resorRule.compute — kollektivt", () => {
   test("computes deduction above the threshold", () => {
     const result = resorRule.compute(withIncome, {
       fardmedel: "kollektivt",
-      kollektivtKostnadOre: 15_000_00,
+      kollektivtKostnadKr: 15_000,
     });
     expect(result).toMatchObject({ amountOre: 4_000_00, needsReview: false });
   });
@@ -103,7 +103,7 @@ describe("resorRule.compute — kollektivt", () => {
   test("gives zero under the threshold", () => {
     const result = resorRule.compute(withIncome, {
       fardmedel: "kollektivt",
-      kollektivtKostnadOre: 5_000_00,
+      kollektivtKostnadKr: 5_000,
     });
     expect(result).toMatchObject({ amountOre: 0, needsReview: false });
   });
