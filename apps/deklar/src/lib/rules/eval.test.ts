@@ -4,7 +4,7 @@
 // (buildFullRegistry, the same one src/app/interview/page.tsx uses) rather
 // than individual rule units. Unit tests already cover each rule's
 // branches in isolation — this file proves the whole system aggregates
-// correctly across all eight rules at once, and gives a single trackable
+// correctly across all ten rules at once, and gives a single trackable
 // "success rate" number (see the summary test at the bottom) instead of a
 // vibe. A regression in any rule that changes a real scenario's total will
 // fail here even if that rule's own unit tests still pass in isolation.
@@ -28,6 +28,8 @@ const ALL_NO: AnswerMap = {
   harSkanktGavor: false,
   harKapitalforlust: false,
   gronTeknikAnvant: false,
+  harHyrtUt: false,
+  harSaltBostadMedForlust: false,
 };
 
 interface Scenario {
@@ -163,11 +165,37 @@ const scenarios: Scenario[] = [
     expectedTotalOre: 150_000,
   },
   {
+    name: "uthyrning av privatbostad, inte redovisat",
+    // Avdrag: 40,000 + 6,000 = 46,000 kr. 30% = 13,800 kr.
+    answers: {
+      ...ALL_NO,
+      harHyrtUt: true,
+      hyresintaktKr: 60_000,
+      uthyrningBostadstyp: "bostadsratt",
+      uthyrningFaktiskKostnadKr: 6_000,
+      uthyrningRedanRedovisat: false,
+    },
+    expectedTotalOre: 1_380_000,
+  },
+  {
+    name: "förlust vid bostadsförsäljning, äkta bostad",
+    // Förlust 100,000 kr, kvoterad 50% = 50,000 kr. 30% = 15,000 kr.
+    answers: {
+      ...ALL_NO,
+      harSaltBostadMedForlust: true,
+      bostadsforlustKr: 100_000,
+      oaktaBostadsratt: false,
+      bostadsforlustRedanForifyllt: false,
+    },
+    expectedTotalOre: 1_500_000,
+  },
+  {
     name: "allt hittat samtidigt — full kombinerad session",
     // Summan av varje enskilt scenario ovan som faktiskt hittar något:
     // resor 2,200,000 + ränta 1,500,000 + rutRot 1,000,000 + gåvor 300,000
     // + kapitalförlust 168,000 + grön teknik 1,250,000
-    // + dubbel bosättning 1,497,500 + krypto 150,000 = 8,065,500 öre
+    // + dubbel bosättning 1,497,500 + krypto 150,000 + uthyrning 1,380,000
+    // + bostadsförlust 1,500,000 = 10,945,500 öre
     answers: {
       fardmedel: "bil",
       avstandKm: 30,
@@ -200,8 +228,17 @@ const scenarios: Scenario[] = [
       lagringKostnadKr: 10_000,
       laddningKostnadKr: 0,
       gronTeknikAvdragetTillampat: false,
+      harHyrtUt: true,
+      hyresintaktKr: 60_000,
+      uthyrningBostadstyp: "bostadsratt",
+      uthyrningFaktiskKostnadKr: 6_000,
+      uthyrningRedanRedovisat: false,
+      harSaltBostadMedForlust: true,
+      bostadsforlustKr: 100_000,
+      oaktaBostadsratt: false,
+      bostadsforlustRedanForifyllt: false,
     },
-    expectedTotalOre: 8_065_500,
+    expectedTotalOre: 10_945_500,
   },
 ];
 

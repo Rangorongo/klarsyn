@@ -280,6 +280,50 @@ export default function LandingPage() {
             dubbelkolla att det syns rätt.
           </p>
         </div>
+        <div className="feature-card">
+          <span className="icon-badge">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 21h18" />
+              <path d="M5 21V9l7-5 7 5v12" />
+              <path d="M9 21v-6h6v6" />
+            </svg>
+          </span>
+          <h3>Uthyrning av privatbostad</h3>
+          <p>
+            Schablonavdrag på 40 000 kr plus faktisk kostnad — kontroll att du
+            fått hela avdraget på hyresintäkten.
+          </p>
+        </div>
+        <div className="feature-card">
+          <span className="icon-badge">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 3v18h18" />
+              <path d="M7 10l4 4 3-3 5 5" />
+              <path d="M19 12v4h-4" />
+            </svg>
+          </span>
+          <h3>Förlust vid bostadsförsäljning</h3>
+          <p>
+            50 % (eller 63 % för oäkta bostadsrätt) av förlusten är
+            avdragsgill — lätt att missa vid en förlustaffär.
+          </p>
+        </div>
       </div>
 
       <section className="section" aria-labelledby="problem-heading">
@@ -568,7 +612,7 @@ export default function LandingPage() {
             </p>
             <div className="about-stats">
               <div className="about-stat">
-                <div className="value">8</div>
+                <div className="value">10</div>
                 <div className="label">avdragsområden vid start</div>
               </div>
               <div className="about-stat">
@@ -706,8 +750,9 @@ export default function LandingPage() {
             </summary>
             <p className="faq-answer">
               Resor och dubbel bosättning, krypto, ränta och kapitalförlust,
-              RUT/ROT, gåvor till välgörenhet samt grön teknik (solceller,
-              batterilagring, laddpunkt) — fler områden är på väg.
+              RUT/ROT, gåvor till välgörenhet, grön teknik (solceller,
+              batterilagring, laddpunkt), uthyrning av privatbostad samt
+              förlust vid bostadsförsäljning — fler områden är på väg.
             </p>
           </details>
         </div>

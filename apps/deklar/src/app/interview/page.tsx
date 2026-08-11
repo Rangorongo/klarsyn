@@ -29,6 +29,9 @@ const EXAMPLE_UNDERLAG: Underlag = {
 const OPTION_LABEL: Record<string, string> = {
   bil: "Bil",
   kollektivt: "Kollektivtrafik",
+  bostadsratt: "Bostadsrätt",
+  hyresratt: "Hyresrätt",
+  smahus: "Hus",
 };
 
 export default function InterviewPage() {

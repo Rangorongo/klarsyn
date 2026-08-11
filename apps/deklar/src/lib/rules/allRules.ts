@@ -1,4 +1,5 @@
 import type { Underlag } from "@/lib/ingestion/skatteverket/models";
+import { bostadsforlustRule } from "./bostadsforlust";
 import { dubbelBosattningRule } from "./dubbelBosattning";
 import { gavorRule } from "./gavor";
 import { gronTeknikRule } from "./gronTeknik";
@@ -9,6 +10,7 @@ import { RuleRegistry } from "./registry";
 import { resorRule } from "./resor";
 import { rutRotRule } from "./rutRot";
 import type { AnswerMap, RuleResult } from "./types";
+import { uthyrningRule } from "./uthyrning";
 
 // Single source of truth for "every rule the product currently implements" —
 // used by both the interview flow (src/app/interview/page.tsx) and the
@@ -23,6 +25,8 @@ export function buildFullRegistry(): RuleRegistry {
   registry.register(gavorRule);
   registry.register(kapitalforlustRule);
   registry.register(gronTeknikRule);
+  registry.register(uthyrningRule);
+  registry.register(bostadsforlustRule);
   return registry;
 }
 
@@ -58,4 +62,6 @@ export const RULE_CATEGORY_LABEL: Record<string, string> = {
   gavor: "Gåvor till välgörenhet",
   kapitalforlust: "Kapitalförlust — aktier och fonder",
   gronTeknik: "Grön teknik",
+  uthyrning: "Uthyrning av privatbostad",
+  bostadsforlust: "Förlust vid bostadsförsäljning",
 };
