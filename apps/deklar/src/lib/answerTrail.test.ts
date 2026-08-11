@@ -46,4 +46,24 @@ describe("answerTrail", () => {
     clearAnswerTrail();
     expect(readAnswerTrail()).toBeNull();
   });
+
+  test("round-trips an entry that includes sourceDocument", () => {
+    const withSource: AnswerTrailEntry = {
+      ...entry,
+      sourceDocument: {
+        name: "deklaration.pdf",
+        hash: "a".repeat(64),
+        sizeBytes: 12_345,
+        storedAt: "2026-08-11T09:00:00.000Z",
+      },
+    };
+    writeAnswerTrail(withSource);
+    expect(readAnswerTrail()).toEqual(withSource);
+  });
+
+  test("round-trips an entry with sourceDocument explicitly null (example data)", () => {
+    const withoutSource: AnswerTrailEntry = { ...entry, sourceDocument: null };
+    writeAnswerTrail(withoutSource);
+    expect(readAnswerTrail()).toEqual(withoutSource);
+  });
 });

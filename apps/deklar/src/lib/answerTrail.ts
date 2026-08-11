@@ -5,15 +5,27 @@ import { UnderlagSchema } from "./ingestion/skatteverket/models";
 // docs/strategi-risker-och-krav.md #1 — skatteregler ändras årligen).
 // Recorded in the trail so a past attestation can be tied back to the rule
 // version that produced it.
-export const RULE_SET_VERSION = "2026-08-09";
+export const RULE_SET_VERSION = "2026-08-11";
 
 const STORAGE_KEY = "deklar:answerTrail";
+
+const SourceDocumentSchema = z.object({
+  name: z.string(),
+  hash: z.string(),
+  sizeBytes: z.number(),
+  storedAt: z.string(),
+});
 
 const AnswerTrailSchema = z.object({
   attestedAt: z.string(),
   ruleSetVersion: z.string(),
   underlag: UnderlagSchema,
   answers: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+  // Ties this trail to the exact uploaded declaration it was based on (see
+  // uploadedFileStorage.ts) — absent when the session used example data
+  // instead of a real upload. Only the hash + metadata live here; the file
+  // bytes themselves stay in uploadedFileStorage's own IndexedDB record.
+  sourceDocument: SourceDocumentSchema.nullable().optional(),
 });
 
 export type AnswerTrailEntry = z.infer<typeof AnswerTrailSchema>;

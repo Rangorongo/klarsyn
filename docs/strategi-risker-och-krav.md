@@ -157,7 +157,13 @@ underlag att luta sig mot om Skatteverket ifrågasätter något.
    (`underlagStorage.ts`) — komplettera med tidsstämpel och version av
    regelverket som användes, så att om Skatteverket ifrågasätter något
    ett år senare kan användaren (och ni) visa exakt vad som låg till
-   grund för beräkningen.
+   grund för beräkningen. Sen 2026-08-11 sparas även själva den
+   uppladdade deklarationsfilen (`uploadedFileStorage.ts`) och en hash av
+   den länkas in i svarsspåret (`sourceDocument`-fältet) — så att ni kan
+   visa exakt vilket original-underlag ett givet råd byggde på, inte bara
+   vilka svar kunden gav. Samma caveat som svarsspåret: klientsidan
+   (IndexedDB) tills Fas 7:s krypterade serverlagring finns —
+   `UploadedDocument`-modellen är redan skissad i `prisma/schema.prisma`.
 4. **Uppmuntra/kräv referens till underlag per avdrag.** Ni har redan
    `dokumentationskrav` i varje guide-mall (bra grund!) — nästa steg är
    att aktivt fråga i intervjun: "Har du kvitto/faktura/kontrolluppgift
@@ -256,10 +262,19 @@ i samma veva som Swish/Klarna sätts upp för bolaget.
    juridisk granskning) — inkludera betalningsvillkoren från punkt 7.
 3. ~~Lägg till intygande-steg + svarsspår med tidsstämpel i intervjuflödet.~~
    **Klart** (2026-08-09) — se `apps/deklar/src/lib/answerTrail.ts` och
-   attesteringssteget i `apps/deklar/src/app/interview/page.tsx`. Kvar:
-   flytta från klientsidans sessionStorage till riktig krypterad
-   serverlagring (Fas 7, `AnswerSet`-modellen finns redan i
-   `prisma/schema.prisma`).
+   attesteringssteget i `apps/deklar/src/app/interview/page.tsx`.
+   ~~Spara/visa den uppladdade deklarationsfilen och länka den till
+   svarsspåret.~~ **Klart** (2026-08-11) — se
+   `apps/deklar/src/lib/uploadedFileStorage.ts`. Kvar: flytta båda från
+   klientsidans sessionStorage/IndexedDB till riktig krypterad
+   serverlagring (Fas 7, `AnswerSet`- och `UploadedDocument`-modellerna
+   finns redan i `prisma/schema.prisma`).
+   Angående "betala bara på det vi hittar utöver vad kunden redan gjort
+   själv": redan hanterat i sak av varje regels "redan förifyllt/redan
+   hanterat"-gating (se t.ex. `ranta.ts`, `rutRot.ts`) som ger
+   `amountOre: 0` för sådant kunden redan fått — värt att dubbelkolla att
+   gatingen är fullständig när fler avdragsområden läggs till, snarare än
+   att bygga en separat "baseline vs. delta"-mekanism.
 4. Bestäm betalningsmodell (se punkt 7) — sparat kort rekommenderas som
    första steg — innan skarp betalning aktiveras.
 5. Sätt upp en årlig rutin för att verifiera alla skatteregler inför varje

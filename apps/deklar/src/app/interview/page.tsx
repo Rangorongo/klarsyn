@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   clearAnswerTrail,
   readAnswerTrail,
@@ -18,6 +18,10 @@ import {
 } from "@/lib/rules/allRules";
 import type { AnswerMap } from "@/lib/rules/types";
 import { readStoredUnderlag } from "@/lib/underlagStorage";
+import {
+  clearUploadedFile,
+  readUploadedFile,
+} from "@/lib/uploadedFileStorage";
 
 // Used when the user chose "Använd exempeldata istället" on /upload, or
 // navigated here directly without going through it.
@@ -50,6 +54,13 @@ export default function InterviewPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [hasAttested, setHasAttested] = useState(false);
   const [attestChecked, setAttestChecked] = useState(false);
+  const [hasUploadedFile, setHasUploadedFile] = useState(false);
+
+  useEffect(() => {
+    readUploadedFile()
+      .then((stored) => setHasUploadedFile(stored !== null))
+      .catch(() => setHasUploadedFile(false));
+  }, []);
 
   const next = useMemo(
     () => getNextQuestion(registry, underlag, answers),
@@ -67,12 +78,21 @@ export default function InterviewPage() {
 
   if (!next.question) {
     if (!hasAttested) {
-      function confirmAttestation() {
+      async function confirmAttestation() {
+        const uploadedFile = await readUploadedFile();
         writeAnswerTrail({
           attestedAt: new Date().toISOString(),
           ruleSetVersion: RULE_SET_VERSION,
           underlag,
           answers,
+          sourceDocument: uploadedFile
+            ? {
+                name: uploadedFile.name,
+                hash: uploadedFile.hash,
+                sizeBytes: uploadedFile.sizeBytes,
+                storedAt: uploadedFile.storedAt,
+              }
+            : null,
         });
         setHasAttested(true);
       }
@@ -86,8 +106,9 @@ export default function InterviewPage() {
               <p>
                 Du har svarat på alla frågor. Innan vi visar vad vi hittat
                 behöver du bekräfta att uppgifterna stämmer — vi sparar dina
-                svar tillsammans med tidpunkten som ditt underlag om
-                Skatteverket senare skulle ifrågasätta något.
+                svar och ditt uppladdade underlag tillsammans med tidpunkten
+                som bevis för de råd vi ger dig, om Skatteverket senare
+                skulle ifrågasätta något.
               </p>
             </div>
 
@@ -116,7 +137,7 @@ export default function InterviewPage() {
                 className="btn btn-primary"
                 type="button"
                 disabled={!attestChecked}
-                onClick={confirmAttestation}
+                onClick={() => void confirmAttestation()}
               >
                 Bekräfta och se resultat
               </button>
@@ -139,6 +160,21 @@ export default function InterviewPage() {
       setHasAttested(false);
       setAttestChecked(false);
       clearAnswerTrail();
+      void clearUploadedFile();
+      setHasUploadedFile(false);
+    }
+
+    async function downloadUploadedFile() {
+      const stored = await readUploadedFile();
+      if (!stored) return;
+      const url = URL.createObjectURL(stored.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = stored.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     }
 
     function downloadAnswerTrail() {
@@ -286,6 +322,15 @@ export default function InterviewPage() {
           >
             Ladda ner ditt svarsspår
           </button>
+          {hasUploadedFile ? (
+            <button
+              className="btn btn-secondary btn-block"
+              type="button"
+              onClick={() => void downloadUploadedFile()}
+            >
+              Ladda ner ditt uppladdade underlag
+            </button>
+          ) : null}
         </div>
       </main>
     );

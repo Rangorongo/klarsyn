@@ -6,6 +6,7 @@ import {
   clearStoredUnderlag,
   writeStoredUnderlag,
 } from "@/lib/underlagStorage";
+import { clearUploadedFile, storeUploadedFile } from "@/lib/uploadedFileStorage";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -32,6 +33,15 @@ export default function UploadPage() {
         return;
       }
 
+      // Best-effort: a browser without IndexedDB (or storage quota issues)
+      // shouldn't block the user from proceeding — it just means we won't
+      // have the original document to back the advice we give later.
+      try {
+        await storeUploadedFile(file);
+      } catch {
+        // Ignored — see comment above.
+      }
+
       writeStoredUnderlag(body.underlag);
       router.push("/interview");
     } catch {
@@ -45,6 +55,7 @@ export default function UploadPage() {
 
   function handleExampleData() {
     clearStoredUnderlag();
+    void clearUploadedFile();
     router.push("/interview");
   }
 
@@ -128,8 +139,9 @@ export default function UploadPage() {
             }}
           />
           <p className="file-hint">
-            Filen skickas krypterat till vår server för avläsning. Den sparas
-            inte förrän du går vidare i flödet.
+            Filen skickas krypterat till vår server för avläsning men sparas
+            inte där. En kopia sparas lokalt i din webbläsare så att vi kan
+            visa vilket underlag våra råd byggde på.
           </p>
         </div>
 
